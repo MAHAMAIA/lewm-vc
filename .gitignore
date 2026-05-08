@@ -10,3 +10,14 @@ venv/
 *.mov
 *.log
 tmp/
+
+# Local-only documentation
+CLAUDE.md
+CONTRIBUTING.md
+PATENT_DRAFT_PROVISIONAL.md
+ROADMAP.md
+blueprint.md
+modules.md
+swarm.md
+thesis.md
+ffmpeg/README_FFMPEG.md
