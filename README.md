@@ -26,7 +26,7 @@ LeWM-VC is a research codec under active development. All results below are repr
 
 ## Architecture
 
-```text
+```
 I-Frame Path:
   Input (256x256) -> ViT Encoder -> Latent [192x16x16] -> GMM Entropy -> Bitstream
 
@@ -41,6 +41,8 @@ P-Frame Path:
 
   Predicted latent comes from:
     Previous decoded latents -> JEPA Predictor (8-layer transformer) -> Predicted latent
+```
+
 Encoder: ViT-Tiny, 6 layers, 192-dim latent grid (16x16 spatial)
 
 Predictor: 8-layer transformer, 256-dim hidden, 4 heads, context length 4
@@ -49,51 +51,75 @@ Entropy Model: 2-component Gaussian Mixture Model with hyperprior CNN
 
 Decoder: 4-layer ConvTranspose upsampling with residual blocks
 
-Quick Start
-Installation
-bash
+## Quick Start
+
+### Installation
+
+```bash
 git clone https://github.com/thepreetam/le-maia.git
 cd le-maia
 python3 -m venv venv
 source venv/bin/activate
 pip install -e .
 pip install torch torchvision opencv-python-headless numpy tqdm
-Reproducing Results
+```
+
+### Reproducing Results
+
 Train intra-frame codec and compute RD curve:
 
-bash
+```bash
 python3 milestone1_rd_curve.py
+```
+
 Train temporal predictor and measure P/I ratio:
 
-bash
+```bash
 python3 milestone2_temporal.py
+```
+
 Evaluate surprise gating:
 
-bash
+```bash
 python3 milestone3_surprise_gating.py
+```
+
 Run latent probe benchmark (semantic preservation):
 
-bash
+```bash
 python3 milestone4b_latent_probe.py
+```
+
 All scripts require PEViD-HD dataset in datasets/pevid-hd/. Download from EPFL FTP: tremplin.epfl.ch, username datasets@mmspgdata.epfl.ch, password ohsh9jah4T (see Korshunov & Ebrahimi, SPIE 2013 for details).
 
-Results Summary
-Temporal Compression (Milestone 2)
-Mode	BPP	PSNR
-All-intra	0.228	25.13 dB
-Temporal (IPPP)	0.087	25.40 dB
-Savings	61.79%	
-Semantic Preservation (Milestone 4b)
-Method	Objectness Acc	Class Acc	BPP
-LeWM-VC latent probe	97.5%	86.5%	1.95
-x265 pixel probe	97.7%	79.3%	1.95
-Citation
-bibtex
+## Results Summary
+
+### Temporal Compression (Milestone 2)
+
+| Mode | BPP | PSNR |
+|------|-----|------|
+| All-intra | 0.228 | 25.13 dB |
+| Temporal (IPPP) | 0.087 | 25.40 dB |
+| Savings | 61.79% | |
+
+### Semantic Preservation (Milestone 4b)
+
+| Method | Objectness Acc | Class Acc | BPP |
+|--------|----------------|-----------|-----|
+| LeWM-VC latent probe | 97.5% | 86.5% | 1.95 |
+| x265 pixel probe | 97.7% | 79.3% | 1.95 |
+
+## Citation
+
+```bibtex
 @misc{lewmvc2026,
   author = {Preetam Mukherjee},
   title = {LeWM-VC: JEPA-Based Video Codec with Temporal Latent Prediction},
   year = {2026},
   url = {https://github.com/thepreetam/le-maia}
 }
-License
+```
+
+## License
+
 MIT https://github.com/thepreetam/le-maia
