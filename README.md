@@ -27,29 +27,36 @@ LeWM-VC is a research codec under active development. All results below are repr
 ## Architecture
 
 ```
-I-Frame Path:
-  Input (256x256) -> ViT Encoder -> Latent [192x16x16] -> GMM Entropy -> Bitstream
+I-Frame Path (Intra-frame Coding):
+  Input(256x256) ──► [ViT Encoder(6L)] ──► Latent[192x16x16] ──► [GMM Entropy] ──► Bitstream
+                                                                                      │
+  Bitstream ──► [GMM Entropy(decode)] ──► Latent[192x16x16] ──► [Decoder(4L)] ──► Output(256x256)
 
-P-Frame Path:
-  Input (256x256) -> ViT Encoder -> Latent [192x16x16]
-                                         |
-                                    subtract predicted latent
-                                         |
-                                    Residual [192x16x16]
-                                         |
-                                    GMM Entropy -> Bitstream
 
-  Predicted latent comes from:
-    Previous decoded latents -> JEPA Predictor (8-layer transformer) -> Predicted latent
+P-Frame Path (Inter-frame with JEPA Temporal Prediction):
+                                          ┌──────────────────────────┐
+                                          │  JEPA Predictor          │
+                                          │  8L transformer, ctx=4   │
+                                          └───────────┬──────────────┘
+                                                      │ Predicted Latent
+                                                      ▼
+  Input(256x256) ──► [ViT Encoder(6L)] ──► Latent ───┼──────────► [⊖] ──► Residual[192x16x16] ──► [GMM Entropy] ──► Bitstream
+                                        │              │                   │                                   │
+                                        │       (pred) │                   │                                 Decode
+                                        │              └───────────────────┘                                   │
+                                        │                                                                       │
+                                        └────────────────────────────► [⊕] ◄── Residual[192x16x16] ◄── [GMM Entropy] ◄── Bitstream
+                                                                    │
+                                                             Latent[192x16x16]
+                                                                    │
+                                                          [Decoder(4L)] ──► Output(256x256)
 ```
 
-Encoder: ViT-Tiny, 6 layers, 192-dim latent grid (16x16 spatial)
-
-Predictor: 8-layer transformer, 256-dim hidden, 4 heads, context length 4
-
-Entropy Model: 2-component Gaussian Mixture Model with hyperprior CNN
-
-Decoder: 4-layer ConvTranspose upsampling with residual blocks
+**Components:**
+- **Encoder:** ViT-Tiny, 6 layers, 192-dim latent grid (16x16 spatial)
+- **Predictor:** 8-layer transformer, 256-dim hidden, 4 heads, context length 4
+- **Entropy Model:** 2-component Gaussian Mixture Model with hyperprior CNN
+- **Decoder:** 4-layer ConvTranspose upsampling with residual blocks
 
 ## Quick Start
 
