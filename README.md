@@ -1,114 +1,99 @@
-# LeWM-VC
+# LeWM-VC: JEPA-Based Video Codec
 
-JEPA-based Video Codec - Learning Energy-based Model for Video Coding
+Learned video compression using Joint Embedding Predictive Architecture (JEPA). Compresses video frames into a compact latent space, predicts future latents via a transformer predictor, and codes only the residual — achieving temporal compression without explicit motion vectors.
 
-## Overview
+## Status (May 2026)
 
-LeWM-VC is a deep learning-based video codec built on the Joint Embedding Predictive Architecture (JEPA) paradigm. It uses a Vision Transformer (ViT) encoder to compress video frames into latent representations, which are then quantized and entropy-coded for efficient storage and transmission.
+LeWM-VC is a research codec under active development. All results below are reproducible with the scripts in this repository.
+
+### What Works
+
+| Component | Status | Key Result |
+|-----------|--------|------------|
+| Intra-frame compression (ViT encoder + GMM entropy model) | Working | Monotonic RD curve, 0.11–0.25 BPP at 22–29 dB PSNR on PEViD-HD at 256x256 |
+| JEPA temporal prediction | Working | 62% bitrate savings over all-intra coding, P/I ratio 0.37x per frame |
+| Latent-space semantic preservation | Working | 86.5% class accuracy vs 79.3% for x265 at matched bitrate |
+| Surprise-gated quantization (VOE) | Mechanism functional | Produces calibrated surprise metric; thresholds require dataset-specific calibration |
+| FFmpeg plugin | In development | C wrapper exists, not yet integrated with trained models |
+| SIGReg regularization | In development | Current code uses Gaussian KL prior; sketched Cramér-Wold implementation in progress |
+
+### What's Not Yet Done
+
+- BD-rate comparison against VVC/H.266
+- Multi-resolution support (currently 256x256 only)
+- Real-time encoding on edge hardware
+- Surprise gating on labeled anomaly datasets
 
 ## Architecture
 
-```
-Input Frame (YUV420)
-       ↓
-  ┌─────────┐
-  │ Encoder │ (ViT-Tiny, 6 layers)
-  └────┬────┘
-       ↓
-   Latent (192 channels, H/16 x W/16)
-       ↓
-  ┌──────────┐
-  │ Quantizer│
-  └────┬─────┘
-       ↓
-  ┌────────────┐
-  │ Entropy    │
-  │ Coder      │
-  └─────┬──────┘
-       ↓
-  Bitstream
-```
+```text
+I-Frame Path:
+  Input (256x256) -> ViT Encoder -> Latent [192x16x16] -> GMM Entropy -> Bitstream
 
-## Features
+P-Frame Path:
+  Input (256x256) -> ViT Encoder -> Latent [192x16x16]
+                                         |
+                                    subtract predicted latent
+                                         |
+                                    Residual [192x16x16]
+                                         |
+                                    GMM Entropy -> Bitstream
 
-- **ViT-based Encoder**: Vision Transformer for efficient video frame compression
-- **Temporal Predictor**: 8-layer transformer with SIGReg Gaussian output
-- **Learned Entropy Model**: Hyperprior + arithmetic coding for bitrate optimization
-- **Semantic Surprise Detection**: Physics implausibility detection for quality assurance
-- **Perceptual Post-Filter**: LPIPS-trained refinement for improved visual quality
-- **Bitstream Support**: NAL unit serialization (7 types)
-- **Rate Control**: Learned λ adaptation + CRF-style QP selection
-- **FFmpeg Plugin**: C wrapper for native FFmpeg integration
+  Predicted latent comes from:
+    Previous decoded latents -> JEPA Predictor (8-layer transformer) -> Predicted latent
+Encoder: ViT-Tiny, 6 layers, 192-dim latent grid (16x16 spatial)
 
-## Project Structure
+Predictor: 8-layer transformer, 256-dim hidden, 4 heads, context length 4
 
-```
-src/lewm_vc/
-├── encoder.py          # ViT-Tiny encoder (192-dim latents)
-├── predictor.py        # 8-layer transformer predictor
-├── decoder.py          # ConvTranspose + post-filter
-├── entropy.py          # Hyperprior + SIGReg KL
-├── quant.py            # STE quantization + QAT stubs
-├── bitstream/
-│   ├── writer.py       # NAL unit writer
-│   └── reader.py      # NAL unit reader
-└── utils/
-    └── rate_control.py # Learned rate controller
+Entropy Model: 2-component Gaussian Mixture Model with hyperprior CNN
 
-ffmpeg/                 # FFmpeg plugin (C wrapper)
-tests/                  # 159 unit tests
-```
+Decoder: 4-layer ConvTranspose upsampling with residual blocks
 
-## Installation
+Quick Start
+Installation
+bash
+git clone https://github.com/thepreetam/le-maia.git
+cd le-maia
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+pip install torch torchvision opencv-python-headless numpy tqdm
+Reproducing Results
+Train intra-frame codec and compute RD curve:
 
-```bash
-pip install -e ".[dev]"
-```
+bash
+python3 milestone1_rd_curve.py
+Train temporal predictor and measure P/I ratio:
 
-## Quick Start
+bash
+python3 milestone2_temporal.py
+Evaluate surprise gating:
 
-### Encoding and Decoding
+bash
+python3 milestone3_surprise_gating.py
+Run latent probe benchmark (semantic preservation):
 
-```python
-import torch
-from lewm_vc import LeWMEncoder, LeWMDecoder
+bash
+python3 milestone4b_latent_probe.py
+All scripts require PEViD-HD dataset in datasets/pevid-hd/. Download from EPFL FTP: tremplin.epfl.ch, username datasets@mmspgdata.epfl.ch, password ohsh9jah4T (see Korshunov & Ebrahimi, SPIE 2013 for details).
 
-encoder = LeWMEncoder(latent_dim=192)
-decoder = LeWMDecoder(latent_dim=192)
-encoder.eval()
-decoder.eval()
-
-frame = torch.rand(1, 3, 256, 256)  # [B, 3, H, W]
-
-with torch.no_grad():
-    latent = encoder(frame)
-    reconstructed = decoder(latent)
-```
-
-### Training
-
-```bash
-python src/scripts/train.py --config configs/dataset.yaml --phase 0
-```
-
-## Testing
-
-```bash
-pytest tests/ -v
-```
-
-## Configuration
-
-- Default latent dimension: 192
-- Patch size: 16x16
-- Transformer layers: 6 (encoder), 8 (predictor)
-- Attention heads: 3 (encoder), 4 (predictor)
-
-## References
-
-- LeWM (LeWorldModel): https://github.com/lucas-maes/le-wm
-- Based on JEPA architecture with SIGReg regularization
-
-## License
-
-MIT License
+Results Summary
+Temporal Compression (Milestone 2)
+Mode	BPP	PSNR
+All-intra	0.228	25.13 dB
+Temporal (IPPP)	0.087	25.40 dB
+Savings	61.79%	
+Semantic Preservation (Milestone 4b)
+Method	Objectness Acc	Class Acc	BPP
+LeWM-VC latent probe	97.5%	86.5%	1.95
+x265 pixel probe	97.7%	79.3%	1.95
+Citation
+bibtex
+@misc{lewmvc2026,
+  author = {Preetam Mukherjee},
+  title = {LeWM-VC: JEPA-Based Video Codec with Temporal Latent Prediction},
+  year = {2026},
+  url = {https://github.com/thepreetam/le-maia}
+}
+License
+MIT https://github.com/thepreetam/le-maia
