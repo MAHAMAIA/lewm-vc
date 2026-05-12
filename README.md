@@ -84,6 +84,29 @@ print(f"Avg BPP: {stats['avg_bpp']:.4f}")
 - **RTSP Support**: Direct integration with camera streams
 - **Docker Ready**: One-command deployment with GPU support
 
+## Reproducing Results
+
+Evaluation scripts for reproducing the paper results are available in `evaluation/`:
+
+```bash
+# Download checkpoint first
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+
+# Intra-frame RD curve (Milestone 1)
+python evaluation/milestone1_rd_curve.py
+
+# Temporal compression with JEPA predictor (Milestone 2)
+python evaluation/milestone2_temporal.py
+
+# Surprise-gated bit allocation (Milestone 3)
+python evaluation/milestone3_surprise_gating.py
+
+# Latent probe accuracy benchmark (Milestone 4b)
+python evaluation/milestone4b_latent_probe.py
+```
+
+All scripts require the PEViD-HD dataset in `datasets/pevid-hd/`.
+
 ## Architecture
 
 ```
