@@ -2,6 +2,7 @@
 LeWM-VC: JEPA-Based Video Codec
 
 Clean inference wrapper for the LeWM-VC video codec.
+Implements temporal coding with JEPA-based prediction.
 """
 
 import time
@@ -12,6 +13,11 @@ from typing import Literal
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
+RESOLUTION = 256
+QUANT_STEP = 2.0 / 255
 
 
 @dataclass
@@ -20,8 +26,8 @@ class EncodedFrame:
 
     frame_num: int
     frame_type: Literal["I", "P"]
-    latent: np.ndarray
-    bits_used: int
+    quantized: np.ndarray
+    bits_used: float
     encoding_time_ms: float
 
 
@@ -32,69 +38,89 @@ class EncodingStats:
     total_frames: int
     i_frames: int
     p_frames: int
-    total_bits: int
-    total_bytes: int
+    total_bits: float
+    total_bytes: float
     encoding_time_s: float
-    avg_bits_per_frame: float
+    avg_bpp: float
     fps: float
 
 
-class VectorQuantizer(nn.Module):
-    """Vector quantizer for latent compression."""
-
-    def __init__(self, codebook_size: int = 256, latent_dim: int = 192):
-        super().__init__()
-        self.codebook_size = codebook_size
-        self.latent_dim = latent_dim
-        codebook = torch.randn(codebook_size, latent_dim)
-        codebook = codebook / codebook.norm(dim=-1, keepdim=True)
-        self.register_buffer("codebook", codebook)
-
-    def forward(self, latent: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        b, c, h, w = latent.shape
-        latent_flat = latent.permute(0, 2, 3, 1).reshape(-1, c)
-        latent_flat = latent_flat / (latent_flat.norm(dim=-1, keepdim=True) + 1e-8)
-        dist = torch.cdist(latent_flat.unsqueeze(0), self.codebook.unsqueeze(0))
-        indices = dist.argmin(dim=-1).squeeze(0)
-        quantized_flat = self.codebook[indices]
-        quantized = quantized_flat.reshape(b, h, w, c).permute(0, 3, 1, 2)
-        return quantized, indices
+# --- Architecture Classes (from milestone2_temporal.py) ---
 
 
 class ResidualBlock(nn.Module):
-    """Residual block with instance normalization."""
-
-    def __init__(self, channels: int):
+    def __init__(self, channels):
         super().__init__()
         self.norm1 = nn.InstanceNorm2d(channels)
         self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
         self.norm2 = nn.InstanceNorm2d(channels)
         self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         residual = x
-        x = torch.nn.functional.gelu(self.norm1(x))
+        x = F.gelu(self.norm1(x))
         x = self.conv1(x)
-        x = torch.nn.functional.gelu(self.norm2(x))
+        x = F.gelu(self.norm2(x))
         x = self.conv2(x)
         return x + residual
 
 
-class PatchEmbed(nn.Module):
-    """Patch embedding layer."""
+class LeWMDecoder(nn.Module):
+    def __init__(self, latent_dim=192, hidden_dim=512):
+        super().__init__()
+        self.proj = nn.Conv2d(latent_dim, hidden_dim, 1)
+        self.up1 = nn.ConvTranspose2d(hidden_dim, hidden_dim // 2, 4, 2, 1)
+        self.res1 = ResidualBlock(hidden_dim // 2)
+        self.up2 = nn.ConvTranspose2d(hidden_dim // 2, hidden_dim // 4, 4, 2, 1)
+        self.res2 = ResidualBlock(hidden_dim // 4)
+        self.up3 = nn.ConvTranspose2d(hidden_dim // 4, hidden_dim // 8, 4, 2, 1)
+        self.res3 = ResidualBlock(hidden_dim // 8)
+        self.up4 = nn.ConvTranspose2d(hidden_dim // 8, hidden_dim // 16, 4, 2, 1)
+        self.res4 = ResidualBlock(hidden_dim // 16)
+        self.final = nn.Sequential(
+            nn.Conv2d(hidden_dim // 16, hidden_dim // 32, 3, 1, 1),
+            nn.InstanceNorm2d(hidden_dim // 32),
+            nn.GELU(),
+            nn.Conv2d(hidden_dim // 32, 3, 3, 1, 1),
+        )
 
-    def __init__(self, patch_size: int = 16, in_chans: int = 3, embed_dim: int = 192):
+    def forward(self, latent, target_size=None):
+        x = self.proj(latent)
+        x = self.up1(x)
+        x = self.res1(x)
+        x = self.up2(x)
+        x = self.res2(x)
+        x = self.up3(x)
+        x = self.res3(x)
+        x = self.up4(x)
+        x = self.res4(x)
+        x = torch.sigmoid(self.final(x))
+        if target_size:
+            x = F.interpolate(x, size=target_size, mode="bilinear", align_corners=False)
+        return x
+
+
+class AffineNormalization(nn.Module):
+    def __init__(self, num_channels):
+        super().__init__()
+        self.scale = nn.Parameter(torch.ones(1, num_channels, 1, 1))
+        self.shift = nn.Parameter(torch.zeros(1, num_channels, 1, 1))
+
+    def forward(self, x):
+        return x * self.scale + self.shift
+
+
+class PatchEmbed(nn.Module):
+    def __init__(self, patch_size=16, in_chans=3, embed_dim=192):
         super().__init__()
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         return self.proj(x)
 
 
 class TransformerEncoderLayer(nn.Module):
-    """Transformer encoder layer with pre-norm."""
-
-    def __init__(self, d_model: int, nhead: int, dim_feedforward: int = 768):
+    def __init__(self, d_model, nhead, dim_feedforward=768):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, batch_first=True)
         self.linear1 = nn.Linear(d_model, dim_feedforward)
@@ -104,7 +130,7 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(0.1)
         self.activation = nn.GELU()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         x2 = self.norm1(x)
         x = x + self.self_attn(x2, x2, x2)[0]
         x2 = self.norm2(x)
@@ -113,15 +139,14 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class LeWMEncoder(nn.Module):
-    """ViT-Tiny style encoder for video compression."""
-
     def __init__(
         self,
-        latent_dim: int = 192,
-        patch_size: int = 16,
-        hidden_dim: int = 192,
-        num_layers: int = 6,
-        num_heads: int = 3,
+        latent_dim=192,
+        patch_size=16,
+        hidden_dim=192,
+        num_layers=6,
+        num_heads=3,
+        semantic_surprise=False,
     ):
         super().__init__()
         self.latent_dim = latent_dim
@@ -140,7 +165,7 @@ class LeWMEncoder(nn.Module):
         self.norm = nn.LayerNorm(hidden_dim)
         self.latent_proj = nn.Conv2d(hidden_dim, latent_dim, kernel_size=1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x, return_surprise=False):
         b, c, h, w = x.shape
         x = self.patch_embed(x)
         x_flat = x.flatten(2).permute(0, 2, 1)
@@ -160,71 +185,14 @@ class LeWMEncoder(nn.Module):
         return latent
 
 
-class LeWMDecoder(nn.Module):
-    """Video decoder with improved architecture."""
-
-    def __init__(self, latent_dim: int = 192, hidden_dim: int = 512):
-        super().__init__()
-        self.proj = nn.Conv2d(latent_dim, hidden_dim, kernel_size=1)
-
-        self.up1 = nn.ConvTranspose2d(
-            hidden_dim, hidden_dim // 2, kernel_size=4, stride=2, padding=1
-        )
-        self.res1 = ResidualBlock(hidden_dim // 2)
-
-        self.up2 = nn.ConvTranspose2d(
-            hidden_dim // 2, hidden_dim // 4, kernel_size=4, stride=2, padding=1
-        )
-        self.res2 = ResidualBlock(hidden_dim // 4)
-
-        self.up3 = nn.ConvTranspose2d(
-            hidden_dim // 4, hidden_dim // 8, kernel_size=4, stride=2, padding=1
-        )
-        self.res3 = ResidualBlock(hidden_dim // 8)
-
-        self.up4 = nn.ConvTranspose2d(
-            hidden_dim // 8, hidden_dim // 16, kernel_size=4, stride=2, padding=1
-        )
-        self.res4 = ResidualBlock(hidden_dim // 16)
-
-        self.final = nn.Sequential(
-            nn.Conv2d(hidden_dim // 16, hidden_dim // 32, 3, padding=1),
-            nn.InstanceNorm2d(hidden_dim // 32),
-            nn.GELU(),
-            nn.Conv2d(hidden_dim // 32, 3, 3, padding=1),
-        )
-
-    def forward(self, latent: torch.Tensor, target_size: tuple = None) -> torch.Tensor:
-        x = self.proj(latent)
-        x = self.up1(x)
-        x = self.res1(x)
-        x = self.up2(x)
-        x = self.res2(x)
-        x = self.up3(x)
-        x = self.res3(x)
-        x = self.up4(x)
-        x = self.res4(x)
-        x = self.final(x)
-        x = torch.sigmoid(x)
-
-        if target_size is not None:
-            x = torch.nn.functional.interpolate(
-                x, size=target_size, mode="bilinear", align_corners=False
-            )
-
-        return x
-
-
 class LeWMPredictor(nn.Module):
-    """Temporal predictor using transformer encoder."""
-
     def __init__(
         self,
-        latent_dim: int = 192,
-        hidden_dim: int = 256,
-        num_layers: int = 8,
-        num_heads: int = 4,
-        context_len: int = 4,
+        latent_dim=192,
+        hidden_dim=256,
+        num_layers=8,
+        num_heads=4,
+        context_len=4,
     ):
         super().__init__()
         self.latent_dim = latent_dim
@@ -254,7 +222,7 @@ class LeWMPredictor(nn.Module):
         self.mean_head = nn.Conv2d(hidden_dim, latent_dim, kernel_size=1)
         self.log_std_head = nn.Conv2d(hidden_dim, latent_dim, kernel_size=1)
 
-    def forward(self, context: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, context):
         b = context[0].shape[0]
         h, w = context[0].shape[2], context[0].shape[3]
 
@@ -293,34 +261,87 @@ class LeWMPredictor(nn.Module):
         return mean, std
 
 
+class GMMEntropyModel(nn.Module):
+    def __init__(self, latent_dim=192, hyper_channels=256, num_components=2):
+        super().__init__()
+        self.latent_dim = latent_dim
+        self.num_components = num_components
+        self.hyperprior = nn.Sequential(
+            nn.Conv2d(latent_dim, hyper_channels, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(hyper_channels, hyper_channels, 3, padding=1, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(hyper_channels, hyper_channels, 3, padding=1),
+            nn.ReLU(),
+            nn.ConvTranspose2d(hyper_channels, hyper_channels, 4, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(hyper_channels, latent_dim * num_components * 3, 3, padding=1),
+        )
+        self.softplus = nn.Softplus()
+
+    def forward(self, x):
+        params = self.hyperprior(x)
+        B, C, H, W = params.shape
+        cp = C // self.num_components
+        params = params.view(B, self.num_components, cp, H, W)
+        mu = params[:, :, : self.latent_dim, :, :]
+        log_scale = params[:, :, self.latent_dim : 2 * self.latent_dim, :, :]
+        log_weight = params[:, :, 2 * self.latent_dim : 3 * self.latent_dim, :, :]
+        scale = self.softplus(log_scale) + 1e-5
+        weight = torch.softmax(log_weight, dim=1)
+        return mu, scale, weight
+
+
+class TemporalCodec(nn.Module):
+    """Full codec with JEPA predictor for temporal residual coding."""
+
+    def __init__(self, latent_dim=192):
+        super().__init__()
+        self.encoder = LeWMEncoder(latent_dim=latent_dim, semantic_surprise=True)
+        self.decoder = LeWMDecoder(latent_dim=latent_dim)
+        self.affine = AffineNormalization(latent_dim)
+        self.predictor = LeWMPredictor(latent_dim=latent_dim)
+
+    def encode_frame(self, frame, prev_latents=None):
+        latent = self.affine(self.encoder(frame, return_surprise=False))
+
+        if prev_latents is None or len(prev_latents) == 0:
+            xq = torch.round(latent / QUANT_STEP) * QUANT_STEP
+            q = xq + (latent - xq.detach()) * 0.5
+            return q, latent, True
+        else:
+            pred_mean, _ = self.predictor(prev_latents)
+            residual = latent - pred_mean
+            xq_res = torch.round(residual / QUANT_STEP) * QUANT_STEP
+            q_res = xq_res + (residual - xq_res.detach()) * 0.5
+            decoded_latent = pred_mean + q_res
+            return q_res, decoded_latent, False
+
+    def decode_frame(self, q, prev_latents=None, is_i_frame=True):
+        if is_i_frame:
+            decoded_latent = q
+        else:
+            pred_mean, _ = self.predictor(prev_latents)
+            decoded_latent = pred_mean + q
+        return self.decoder(decoded_latent, target_size=(RESOLUTION, RESOLUTION))
+
+
+# --- Main Codec Class ---
+
+
 class LeWMVideoCodec:
     """
-    Clean video codec for encoding and decoding video frames.
+    Video codec for encoding and decoding video frames using JEPA temporal prediction.
 
     Args:
-        latent_dim: Latent dimension (default: 192)
-        gop_size: Group of pictures size (default: 16)
-        checkpoint_path: Path to model checkpoint (optional)
+        checkpoint_path: Path to trained checkpoint (temporal_final.pt)
+        device: Device to use ('cuda' or 'cpu')
     """
 
-    def __init__(
-        self,
-        latent_dim: int = 192,
-        gop_size: int = 16,
-        checkpoint_path: str = None,
-    ):
-        self.latent_dim = latent_dim
-        self.gop_size = gop_size
-
-        self.encoder = LeWMEncoder(latent_dim=latent_dim)
-        self.decoder = LeWMDecoder(latent_dim=latent_dim)
-        self.predictor = LeWMPredictor(latent_dim=latent_dim)
-        self.quantizer = VectorQuantizer(codebook_size=256, latent_dim=latent_dim)
-
-        self.encoder.eval()
-        self.decoder.eval()
-        self.predictor.eval()
-        self.quantizer.eval()
+    def __init__(self, checkpoint_path=None, device="cuda"):
+        self.device = device if torch.cuda.is_available() else "cpu"
+        self.codec = TemporalCodec(latent_dim=192).to(self.device)
+        self.entropy = GMMEntropyModel(latent_dim=192).to(self.device)
 
         if checkpoint_path is None:
             default_paths = [
@@ -333,16 +354,22 @@ class LeWMVideoCodec:
                     break
 
         if checkpoint_path and Path(checkpoint_path).exists():
-            checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-            if "encoder" in checkpoint:
-                self.encoder.load_state_dict(checkpoint["encoder"], strict=False)
-            if "decoder" in checkpoint:
-                self.decoder.load_state_dict(checkpoint["decoder"], strict=False)
-            if "predictor" in checkpoint:
-                self.predictor.load_state_dict(checkpoint["predictor"], strict=False)
+            print(f"Loading checkpoint from {checkpoint_path}")
+            checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+            if "codec" in checkpoint:
+                self.codec.load_state_dict(checkpoint["codec"], strict=False)
+            if "entropy" in checkpoint:
+                self.entropy.load_state_dict(checkpoint["entropy"], strict=False)
 
-        self.context: list[torch.Tensor] = []
-        self.encoded_frames: list[EncodedFrame] = []
+        self.codec.eval()
+        self.entropy.eval()
+
+        self.context = []
+        self.encoded_frames = []
+        self.total_bits = 0.0
+        self.frame_count = 0
+        self.gop_size = 8
+        self.quant_step = QUANT_STEP
 
     def encode_frame(self, frame: np.ndarray) -> EncodedFrame:
         """
@@ -356,51 +383,50 @@ class LeWMVideoCodec:
         """
         start_time = time.perf_counter()
 
-        frame_tensor = torch.from_numpy(frame).float().permute(2, 0, 1).unsqueeze(0) / 255.0
+        frame_tensor = (
+            torch.from_numpy(frame).float().permute(2, 0, 1).unsqueeze(0).to(self.device) / 255.0
+        )
 
-        is_i_frame = len(self.context) == 0 or len(self.context) % self.gop_size == 0
+        is_i_frame = len(self.context) == 0 or self.frame_count % self.gop_size == 0
 
         with torch.no_grad():
-            latent = self.encoder(frame_tensor)
+            q, decoded_latent, is_i = self.codec.encode_frame(
+                frame_tensor,
+                self.context[-self.codec.predictor.context_len :] if self.context else None,
+            )
 
-            if is_i_frame:
-                frame_type = "I"
-            else:
-                frame_type = "P"
-                if len(self.context) > 0:
-                    mu, _ = self.predictor(self.context[-4:])
-                    latent = latent - mu
+            mu, scale, weight = self.entropy(q)
+            from torch.distributions.normal import Normal
 
-            quantized, indices = self.quantizer(latent)
-            bits = self._calculate_bits(quantized, frame_type)
+            nc = mu.shape[1]
+            ye = q.unsqueeze(1).expand(-1, nc, -1, -1, -1)
+            n = Normal(mu, scale)
+            pmf = torch.clamp(
+                n.cdf(ye + 0.5 * self.quant_step) - n.cdf(ye - 0.5 * self.quant_step),
+                min=1e-12,
+                max=1.0,
+            )
+            nll = -torch.log((weight * pmf).sum(dim=1)).mean()
+            bits = (nll.item() / np.log(2)) * q.numel()
+            self.total_bits += bits
 
         encoding_time = (time.perf_counter() - start_time) * 1000
 
         encoded = EncodedFrame(
-            frame_num=len(self.context),
-            frame_type=frame_type,
-            latent=quantized.squeeze(0).cpu().numpy(),
+            frame_num=self.frame_count,
+            frame_type="I" if is_i else "P",
+            quantized=q.squeeze(0).cpu().numpy(),
             bits_used=bits,
             encoding_time_ms=encoding_time,
         )
 
         self.encoded_frames.append(encoded)
-        self.context.append(latent.detach())
-
-        if len(self.context) > self.gop_size:
+        self.context.append(decoded_latent.detach())
+        if len(self.context) > self.codec.predictor.context_len:
             self.context.pop(0)
+        self.frame_count += 1
 
         return encoded
-
-    def _calculate_bits(self, latent: torch.Tensor, frame_type: str) -> int:
-        """Calculate bits for encoding."""
-        num_elements = latent.numel()
-        base_bits = num_elements * 2
-
-        if frame_type == "I":
-            return int(base_bits * 1.5)
-        else:
-            return int(base_bits * 0.4)
 
     def decode_frame(self, encoded: EncodedFrame, target_size: tuple = None) -> np.ndarray:
         """
@@ -414,13 +440,19 @@ class LeWMVideoCodec:
             Decoded RGB frame as [H, W, 3] numpy array in 0-255 range
         """
         with torch.no_grad():
-            latent = torch.from_numpy(encoded.latent).unsqueeze(0)
+            q = torch.from_numpy(encoded.quantized).unsqueeze(0).to(self.device)
+            is_i_frame = encoded.frame_type == "I"
 
-            if encoded.frame_type == "P" and len(self.context) > 0:
-                mu, _ = self.predictor(self.context[-4:])
-                latent = latent + mu
+            decoded = self.codec.decode_frame(
+                q,
+                self.context[-self.codec.predictor.context_len :] if self.context else None,
+                is_i_frame,
+            )
 
-            decoded = self.decoder(latent, target_size)
+            if target_size:
+                decoded = F.interpolate(
+                    decoded, size=target_size, mode="bilinear", align_corners=False
+                )
 
         decoded_np = decoded.squeeze(0).permute(1, 2, 0).cpu().numpy()
         decoded_np = np.clip(decoded_np * 255, 0, 255).astype(np.uint8)
@@ -457,38 +489,62 @@ class LeWMVideoCodec:
             List of decoded RGB frames as numpy arrays [H, W, 3] in 0-255 range
         """
         self.context = []
+        self.frame_count = 0
         decoded_frames = []
 
         for encoded in encoded_frames:
             decoded = self.decode_frame(encoded, target_size)
             decoded_frames.append(decoded)
 
-            with torch.no_grad():
-                latent = torch.from_numpy(encoded.latent).unsqueeze(0)
-                self.context.append(latent)
+            q = torch.from_numpy(encoded.quantized).unsqueeze(0).to(self.device)
+            is_i_frame = encoded.frame_type == "I"
 
-            if len(self.context) > self.gop_size:
+            if is_i_frame:
+                decoded_latent = q
+            else:
+                pred_mean, _ = self.codec.predictor(
+                    self.context[-self.codec.predictor.context_len :]
+                )
+                decoded_latent = pred_mean + q
+
+            self.context.append(decoded_latent.detach())
+            if len(self.context) > self.codec.predictor.context_len:
                 self.context.pop(0)
+            self.frame_count += 1
 
         return decoded_frames
 
     def get_stats(self) -> EncodingStats:
         """Get encoding statistics."""
-        total_bits = sum(f.bits_used for f in self.encoded_frames)
+        total_frames = len(self.encoded_frames)
+        if total_frames == 0:
+            return EncodingStats(
+                total_frames=0,
+                i_frames=0,
+                p_frames=0,
+                total_bits=0,
+                total_bytes=0,
+                encoding_time_s=0,
+                avg_bpp=0,
+                fps=0,
+            )
+
         i_frames = sum(1 for f in self.encoded_frames if f.frame_type == "I")
         p_frames = sum(1 for f in self.encoded_frames if f.frame_type == "P")
-        total_bytes = (total_bits + 7) // 8
         total_time = sum(f.encoding_time_ms for f in self.encoded_frames) / 1000
-        fps = len(self.encoded_frames) / total_time if total_time > 0 else 0
+        fps = total_frames / total_time if total_time > 0 else 0
+
+        total_pixels = total_frames * 3 * RESOLUTION * RESOLUTION
+        avg_bpp = self.total_bits / total_pixels if total_pixels > 0 else 0
 
         return EncodingStats(
-            total_frames=len(self.encoded_frames),
+            total_frames=total_frames,
             i_frames=i_frames,
             p_frames=p_frames,
-            total_bits=total_bits,
-            total_bytes=total_bytes,
+            total_bits=self.total_bits,
+            total_bytes=self.total_bits / 8,
             encoding_time_s=total_time,
-            avg_bits_per_frame=total_bits / len(self.encoded_frames) if self.encoded_frames else 0,
+            avg_bpp=avg_bpp,
             fps=fps,
         )
 
@@ -496,6 +552,8 @@ class LeWMVideoCodec:
         """Reset encoder state."""
         self.context = []
         self.encoded_frames = []
+        self.total_bits = 0.0
+        self.frame_count = 0
 
 
 def compute_psnr(img1: np.ndarray, img2: np.ndarray) -> float:

@@ -38,6 +38,7 @@ venv/
 ENV/
 checkpoint/*.pt
 !checkpoint/.gitkeep
+!checkpoint/README.md
+
 *.pth
-*.pt
 !examples/*.py

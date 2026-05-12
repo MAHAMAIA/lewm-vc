@@ -16,19 +16,28 @@ A deep learning-based video codec using Joint Embedding Predictive Architecture 
 
 ## Quick Start
 
-### One-Command Docker Run
+### 1. Download Checkpoint
+
+Download the trained checkpoint from [GitHub Releases](https://github.com/MAHAMAIA/lewm-vc/releases/tag/v0.1.0):
+
+```bash
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+```
+
+### 2. One-Command Docker Run
 
 ```bash
 docker run -p 5000:5000 \
   -v $(pwd)/checkpoint:/app/checkpoint \
-  ghcr.io/mahamaia/lewmvc-stream:latest
+  ghcr.io/mahamaia/lewm-vc:latest
 ```
 
 Or using docker-compose:
 
 ```bash
-git clone https://github.com/MAHAMAIA/lewmvc-stream.git
-cd lewmvc-stream
+git clone https://github.com/MAHAMAIA/lewm-vc.git
+cd lewm-vc
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
 docker-compose up
 ```
 
@@ -37,11 +46,15 @@ docker-compose up
 ```python
 from src.codec import LeWMVideoCodec
 
-codec = LeWMVideoCodec()
+codec = LeWMVideoCodec(checkpoint_path="checkpoint/temporal_final.pt")
 
 frames = [...]  # List of [H, W, 3] numpy arrays (RGB, 0-255)
 
 encoded, stats = codec.encode_video(frames)
+
+print(f"Encoded {stats.total_frames} frames")
+print(f"Avg BPP: {stats.avg_bpp:.4f}")
+print(f"FPS: {stats.fps:.1f}")
 
 decoded_frames = codec.decode_video(encoded)
 ```
@@ -59,13 +72,13 @@ encoded, stats = client.encode_rtsp(
 )
 
 print(f"Encoded {stats['frames_processed']} frames")
-print(f"Avg bits/frame: {stats['avg_bits_per_frame']:.1f}")
+print(f"Avg BPP: {stats['avg_bpp']:.4f}")
 ```
 
 ## Features
 
 - **JEPA Temporal Prediction**: Transformer-based predictor learns temporal dependencies without explicit motion vectors
-- **Vector Quantization**: 256-codebook VQ for latent compression
+- **Scalar Quantization**: Straight-through estimation with learned entropy model
 - **Adaptive Bit Allocation**: I/P-frame coding with configurable GOP size
 - **REST API**: HTTP endpoints for encoding, decoding, and streaming
 - **RTSP Support**: Direct integration with camera streams
@@ -99,7 +112,7 @@ Input Frame (256x256 RGB)
 **Key Components:**
 - **Encoder**: ViT-Tiny (6 layers, 192-dim, 3 attention heads)
 - **Predictor**: 8-layer transformer (256-dim, 4 heads, context length 4)
-- **Quantizer**: 256-codebook vector quantization
+- **Entropy Model**: 2-component Gaussian Mixture Model with hyperprior
 - **Decoder**: 4-layer ConvTranspose with residual blocks
 
 ## Limitations
@@ -115,8 +128,9 @@ Input Frame (256x256 RGB)
 ### From Source
 
 ```bash
-git clone https://github.com/MAHAMAIA/lewmvc-stream.git
-cd lewmvc-stream
+git clone https://github.com/MAHAMAIA/lewm-vc.git
+cd lewm-vc
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
 pip install -r requirements.txt
 
 python -m src.server
@@ -126,7 +140,7 @@ python -m src.server
 
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-docker run --gpus all -p 5000:5000 ghcr.io/mahamaia/lewmvc-stream:latest
+docker run --gpus all -p 5000:5000 ghcr.io/mahamaia/lewm-vc:latest
 ```
 
 ## API Endpoints
@@ -165,7 +179,7 @@ If you use LeWM-VC in your research, please cite:
   author = {Preetam Mukherjee},
   title = {LeWM-VC: JEPA-Based Video Codec with Temporal Latent Prediction},
   year = {2026},
-  url = {https://github.com/MAHAMAIA/lewmvc-stream}
+  url = {https://github.com/MAHAMAIA/lewm-vc}
 }
 ```
 

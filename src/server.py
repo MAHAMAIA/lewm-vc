@@ -5,8 +5,6 @@ HTTP server for LeWM-VC video codec inference.
 """
 
 import base64
-import io
-import json
 import logging
 import time
 from pathlib import Path
@@ -14,9 +12,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request
 
-from codec import LeWMVideoCodec, compute_psnr
+from codec import LeWMVideoCodec, RESOLUTION
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,9 +23,9 @@ app = Flask(__name__)
 
 codec: LeWMVideoCodec = None
 stats = {
-    "frames_processed": 0,
-    "total_bits": 0,
-    "total_time_ms": 0,
+    "frames_encoded": 0,
+    "total_bits": 0.0,
+    "total_time_ms": 0.0,
     "sessions": 0,
 }
 
@@ -58,9 +56,10 @@ def health():
     """Health check endpoint."""
     return jsonify(
         {
-            "status": "healthy",
+            "status": "ok",
             "model_loaded": codec is not None,
             "device": str(torch.device("cuda" if torch.cuda.is_available() else "cpu")),
+            "checkpoint_loaded": Path("checkpoint/temporal_final.pt").exists(),
         }
     )
 
@@ -70,12 +69,15 @@ def start_session():
     """Start a new encoding session."""
     global stats
     stats["sessions"] += 1
+    stats["frames_encoded"] = 0
+    stats["total_bits"] = 0.0
+    stats["total_time_ms"] = 0.0
     codec.reset()
     return jsonify(
         {
             "session_id": stats["sessions"],
             "message": "Session started",
-            "latent_dim": codec.latent_dim,
+            "latent_dim": 192,
             "gop_size": codec.gop_size,
         }
     )
@@ -83,16 +85,7 @@ def start_session():
 
 @app.route("/encode", methods=["POST"])
 def encode_frame():
-    """
-    Encode a single frame.
-
-    Accepts:
-        - JSON with "image" (base64) or "image_url"
-        - Multipart form with "image" file
-
-    Returns:
-        Encoded frame data with statistics
-    """
+    """Encode a single frame."""
     global stats
 
     try:
@@ -120,7 +113,7 @@ def encode_frame():
         encoded = codec.encode_frame(frame)
         encode_time = (time.perf_counter() - start) * 1000
 
-        stats["frames_processed"] += 1
+        stats["frames_encoded"] += 1
         stats["total_bits"] += encoded.bits_used
         stats["total_time_ms"] += encode_time
 
@@ -128,28 +121,23 @@ def encode_frame():
             {
                 "frame_num": encoded.frame_num,
                 "frame_type": encoded.frame_type,
-                "bits_used": encoded.bits_used,
+                "bits_used": round(encoded.bits_used, 2),
                 "encoding_time_ms": round(encode_time, 2),
-                "latent_shape": list(encoded.latent.shape),
+                "latent_shape": list(encoded.quantized.shape),
             }
         )
 
     except Exception as e:
         logger.error(f"Encoding error: {e}")
+        import traceback
+
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/decode", methods=["POST"])
 def decode_frame():
-    """
-    Decode an encoded frame.
-
-    Accepts:
-        JSON with frame_num and optional target_size
-
-    Returns:
-        Decoded image as base64
-    """
+    """Decode an encoded frame."""
     try:
         data = request.get_json()
 
@@ -190,24 +178,22 @@ def decode_frame():
 @app.route("/stats", methods=["GET"])
 def get_stats():
     """Get encoding statistics."""
-    if stats["frames_processed"] == 0:
-        return jsonify(
-            {
-                "frames_processed": 0,
-                "avg_bits_per_frame": 0,
-                "avg_time_ms": 0,
-            }
-        )
+    total_pixels = stats["frames_encoded"] * 3 * RESOLUTION * RESOLUTION
+    avg_bpp = stats["total_bits"] / total_pixels if total_pixels > 0 else 0
 
     return jsonify(
         {
-            "frames_processed": stats["frames_processed"],
-            "total_bits": stats["total_bits"],
-            "avg_bits_per_frame": stats["total_bits"] / stats["frames_processed"],
+            "frames_encoded": stats["frames_encoded"],
+            "total_bits": round(stats["total_bits"], 2),
+            "avg_bits_per_frame": round(stats["total_bits"] / stats["frames_encoded"], 2)
+            if stats["frames_encoded"] > 0
+            else 0,
+            "avg_bpp": round(avg_bpp, 4),
             "total_time_ms": round(stats["total_time_ms"], 2),
-            "avg_time_ms": round(stats["total_time_ms"] / stats["frames_processed"], 2),
+            "avg_time_ms": round(stats["total_time_ms"] / stats["frames_encoded"], 2)
+            if stats["frames_encoded"] > 0
+            else 0,
             "sessions": stats["sessions"],
-            "current_session_frames": len(codec.encoded_frames),
         }
     )
 
@@ -216,6 +202,9 @@ def get_stats():
 def reset():
     """Reset the codec state."""
     codec.reset()
+    stats["frames_encoded"] = 0
+    stats["total_bits"] = 0.0
+    stats["total_time_ms"] = 0.0
     return jsonify({"message": "Codec reset"})
 
 
