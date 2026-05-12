@@ -151,6 +151,7 @@ class LeWMEncoder(nn.Module):
         super().__init__()
         self.latent_dim = latent_dim
         self.patch_size = patch_size
+        self.hidden_dim = hidden_dim
 
         self.patch_embed = PatchEmbed(patch_size, 3, hidden_dim)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, hidden_dim))
@@ -179,7 +180,7 @@ class LeWMEncoder(nn.Module):
         x_with_cls = self.norm(x_with_cls)
         patch_output = x_with_cls[:, 1:]
         patch_output = patch_output.permute(0, 2, 1).reshape(
-            b, hidden_dim, h // self.patch_size, w // self.patch_size
+            b, self.hidden_dim, h // self.patch_size, w // self.patch_size
         )
         latent = self.latent_proj(patch_output)
         return latent
