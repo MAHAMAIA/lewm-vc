@@ -110,15 +110,6 @@ class AffineNormalization(nn.Module):
         return x * self.scale + self.shift
 
 
-class PatchEmbed(nn.Module):
-    def __init__(self, patch_size=16, in_chans=3, embed_dim=192):
-        super().__init__()
-        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
-
-    def forward(self, x):
-        return self.proj(x)
-
-
 class TransformerEncoderLayer(nn.Module):
     def __init__(self, d_model, nhead, dim_feedforward=768):
         super().__init__()
@@ -153,7 +144,7 @@ class LeWMEncoder(nn.Module):
         self.patch_size = patch_size
         self.hidden_dim = hidden_dim
 
-        self.patch_embed = PatchEmbed(patch_size, 3, hidden_dim)
+        self.patch_embed = nn.Conv2d(3, hidden_dim, kernel_size=patch_size, stride=patch_size)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, hidden_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, 1, hidden_dim))
 
