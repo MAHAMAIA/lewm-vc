@@ -189,5 +189,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Related
 
-- [Private Research Repo](https://github.com/MAHAMAIA/le-maia) - Full training code and experiments
 - [arXiv Paper](#) - Coming soon
