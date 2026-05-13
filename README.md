@@ -86,7 +86,7 @@ print(f"Avg BPP: {stats['avg_bpp']:.4f}")
 
 ## Reproducing Results
 
-Evaluation scripts for reproducing the paper results are available in `evaluation/`:
+Evaluation scripts and notebooks for reproducing the paper results are available in `evaluation/`:
 
 ```bash
 # Download checkpoint first
@@ -103,6 +103,9 @@ python evaluation/milestone3_surprise_gating.py
 
 # Latent probe accuracy benchmark (Milestone 4b)
 python evaluation/milestone4b_latent_probe.py
+
+# Operational bitrate analysis (Jupyter notebook)
+jupyter notebook evaluation/probe_operational_bitrate.ipynb
 ```
 
 All scripts require the PEViD-HD dataset in `datasets/pevid-hd/`.
