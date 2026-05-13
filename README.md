@@ -16,12 +16,17 @@ A deep learning-based video codec using Joint Embedding Predictive Architecture 
 
 ## Quick Start
 
-### 1. Download Checkpoint
+### 1. Download Checkpoints
 
-Download the trained checkpoint from [GitHub Releases](https://github.com/MAHAMAIA/lewm-vc/releases/tag/v0.1.0):
+Download trained checkpoints from [GitHub Releases](https://github.com/MAHAMAIA/lewm-vc/releases/tag/v0.1.0):
 
 ```bash
+# Temporal codec (Milestone 2) - required for inference
 wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+
+# Autoencoder and entropy model (Milestone 1) - for evaluation scripts
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/ae_lambda_0.05_final.pt -O checkpoint/ae_lambda_0.05_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/entropy_lambda_0.05_final.pt -O checkpoint/entropy_lambda_0.05_final.pt
 ```
 
 ### 2. One-Command Docker Run
@@ -38,6 +43,8 @@ Or using docker-compose:
 git clone https://github.com/MAHAMAIA/lewm-vc.git
 cd lewm-vc
 wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/ae_lambda_0.05_final.pt -O checkpoint/ae_lambda_0.05_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/entropy_lambda_0.05_final.pt -O checkpoint/entropy_lambda_0.05_final.pt
 docker-compose up
 ```
 
@@ -89,8 +96,10 @@ print(f"Avg BPP: {stats['avg_bpp']:.4f}")
 Evaluation scripts and notebooks for reproducing the paper results are available in `evaluation/`:
 
 ```bash
-# Download checkpoint first
+# Download checkpoints first
 wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/ae_lambda_0.05_final.pt -O checkpoint/ae_lambda_0.05_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/entropy_lambda_0.05_final.pt -O checkpoint/entropy_lambda_0.05_final.pt
 
 # Intra-frame RD curve (Milestone 1)
 python evaluation/milestone1_rd_curve.py
@@ -157,6 +166,8 @@ Input Frame (256x256 RGB)
 git clone https://github.com/MAHAMAIA/lewm-vc.git
 cd lewm-vc
 wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/temporal_final.pt -O checkpoint/temporal_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/ae_lambda_0.05_final.pt -O checkpoint/ae_lambda_0.05_final.pt
+wget https://github.com/MAHAMAIA/lewm-vc/releases/download/v0.1.0/entropy_lambda_0.05_final.pt -O checkpoint/entropy_lambda_0.05_final.pt
 pip install -r requirements.txt
 
 python -m src.server
