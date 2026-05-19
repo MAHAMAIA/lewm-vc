@@ -1,36 +1,29 @@
-# LeWM-Eval: Reproducible Benchmark for Machine-Oriented Video Compression
+# LeWM-VC: JEPA-Based Learned Video Codec
 
-**Measure what matters: task accuracy at matched bitrate.**
+**Reference implementation for machine-oriented video compression.**
 
-LeWM-Eval is a codec-agnostic evaluation framework for machine-oriented video compression. It measures how well a compressed video representation preserves task-relevant semantic information — object location, class, motion trajectory — rather than pixel fidelity (PSNR, SSIM).
+LeWM-VC is a learned video codec that compresses frames into a compact latent space using Joint Embedding Predictive Architecture (JEPA), eliminating hand-crafted motion vectors. It achieves 62% temporal bitrate savings over all-intra coding while preserving 7.2 pp more classification accuracy than H.265 at matched bitrate.
 
-This repository provides:
-- **LeWM-Eval** — the evaluation framework (codec-agnostic semantic probing pipeline)
-- **LeWM-VC** — a reference codec implementation (JEPA-based latent prediction, included to validate and demonstrate the methodology)
+The evaluation methodology used to measure these results is **LeWM-Eval** — a codec-agnostic evaluation framework for machine-oriented video compression. LeWM-Eval lives in its own repository: [github.com/MAHAMAIA/lewm-eval](https://github.com/MAHAMAIA/lewm-eval).
+
+This repository contains:
+- **LeWM-VC** — the reference codec implementation (encoder, decoder, JEPA predictor, GMM entropy model)
+- **Reproduction scripts** — numbered experiments (01–12) that reproduce all paper results
+- **Benchmark outputs** — per-milestone evaluation logs and CSVs
 
 ---
 
 ## For VCM Researchers
 
-LeWM-Eval is designed to align with the MPEG VCM (Video Coding for Machines) Common Test Conditions structure:
+The evaluation methodology used in this project (semantic probing, bitrate matching, cross-teacher validation) is packaged as **LeWM-Eval** — a standalone, codec-agnostic framework at [github.com/MAHAMAIA/lewm-eval](https://github.com/MAHAMAIA/lewm-eval).
 
-- **Bitrate matching:** Sweeps codec quality parameters (CRF, λ) to ±5% of target BPP
-- **Semantic probing:** Trains identical lightweight CNN probes on any codec's output vs. frozen teacher pseudo-labels
-- **Cross-teacher validation:** Supports multiple detectors (YOLOv5s, YOLOv5su) — teacher-agnostic comparisons
-- **Metrics reported:** BPP, objectness accuracy, class accuracy, rate-accuracy curves
-- **Planned:** Tracking accuracy (ByteTrack+HOTA), privacy leakage (ReID probing), RDA curves (BD-rate analog)
-
-The framework is codec-agnostic: any codec — H.265, H.266/VVC, AV1, or any learned codec — can be evaluated by storing decoded frames to disk and running the probe pipeline against them. See [`evaluation/`](./evaluation/) for the implementation.
+LeWM-Eval is designed to align with the MPEG VCM Common Test Conditions structure. Any codec can be evaluated by decoding frames to disk and running the probe pipeline. The LeWM-VC codec in this repo is a reference implementation that validates the methodology.
 
 ---
 
 ## Repository Structure
 
 ```
-├── evaluation/
-│   ├── semantic_probe.py          # Standalone semantic probing entry point
-│   ├── README.md                  # Instructions for evaluating any codec
-│   └── benchmark_utils.py         # Shared utilities (coming in PyPI release)
 ├── lewm_vc/                       # Reference codec implementation
 │   ├── encoder.py                 # ViT-Tiny encoder
 │   ├── decoder.py                 # ConvTranspose decoder
@@ -53,18 +46,16 @@ cd le-maia
 pip install -e ".[dev]"
 ```
 
-### Evaluate an external codec
+### Evaluate a codec with LeWM-Eval
+
+The standalone evaluation framework is at [github.com/MAHAMAIA/lewm-eval](https://github.com/MAHAMAIA/lewm-eval):
 
 ```bash
-python evaluation/semantic_probe.py \
-    --codec x265 \
-    --input /path/to/your/video.yuv \
-    --frames 100 \
-    --teacher yolov5s \
-    --output results.json
+git clone https://github.com/MAHAMAIA/lewm-eval.git
+cd lewm-eval
+pip install ultralytics torch torchvision opencv-python pillow tqdm
+python evaluation/semantic_probe.py --frames /path/to/decoded/frames/
 ```
-
-Supports any codec that can produce decoded frames. See [`evaluation/README.md`](./evaluation/README.md) for adding custom codec wrappers.
 
 ### Reproduce LeWM-VC results
 
@@ -94,13 +85,12 @@ All results reproducible from public checkpoints. Exact command lines, random se
 
 | Component | Status |
 |-----------|--------|
-| Semantic probing pipeline (codec-agnostic) | Released |
 | LeWM-VC reference codec | Released, public checkpoints |
-| x265/H.264 wrappers | Included |
+| Reproduction scripts | Released (experiment/01–12) |
+| LeWM-Eval evaluation framework | Separate repo: [github.com/MAHAMAIA/lewm-eval](https://github.com/MAHAMAIA/lewm-eval) |
 | MPEG VCM engagement | Initial outreach underway |
-| Standalone PyPI package (`lewm-eval`) | In development |
-| VVC/H.266 wrapper | Planned |
-| Public leaderboard | In development |
+| Standalone PyPI package | In development |
+| Public leaderboard | Planned |
 
 ---
 
