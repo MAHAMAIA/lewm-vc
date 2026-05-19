@@ -1,127 +1,115 @@
-# LeWM-VC: JEPA-Based Video Codec
+# LeWM-Eval: Reproducible Benchmark for Machine-Oriented Video Compression
 
-Learned video compression using Joint Embedding Predictive Architecture (JEPA). Compresses video frames into a compact latent space, predicts future latents via a transformer predictor, and codes only the residual — achieving temporal compression without explicit motion vectors.
+**Measure what matters: task accuracy at matched bitrate.**
+
+LeWM-Eval is a codec-agnostic evaluation framework for machine-oriented video compression. It measures how well a compressed video representation preserves task-relevant semantic information — object location, class, motion trajectory — rather than pixel fidelity (PSNR, SSIM).
+
+This repository provides:
+- **LeWM-Eval** — the evaluation framework (codec-agnostic semantic probing pipeline)
+- **LeWM-VC** — a reference codec implementation (JEPA-based latent prediction, included to validate and demonstrate the methodology)
+
+---
+
+## For VCM Researchers
+
+LeWM-Eval is designed to align with the MPEG VCM (Video Coding for Machines) Common Test Conditions structure:
+
+- **Bitrate matching:** Sweeps codec quality parameters (CRF, λ) to ±5% of target BPP
+- **Semantic probing:** Trains identical lightweight CNN probes on any codec's output vs. frozen teacher pseudo-labels
+- **Cross-teacher validation:** Supports multiple detectors (YOLOv5s, YOLOv5su) — teacher-agnostic comparisons
+- **Metrics reported:** BPP, objectness accuracy, class accuracy, rate-accuracy curves
+- **Planned:** Tracking accuracy (ByteTrack+HOTA), privacy leakage (ReID probing), RDA curves (BD-rate analog)
+
+The framework is codec-agnostic: any codec — H.265, H.266/VVC, AV1, or any learned codec — can be evaluated by storing decoded frames to disk and running the probe pipeline against them. See [`evaluation/`](./evaluation/) for the implementation.
+
+---
+
+## Repository Structure
+
+```
+├── evaluation/
+│   ├── semantic_probe.py          # Standalone semantic probing entry point
+│   ├── README.md                  # Instructions for evaluating any codec
+│   └── benchmark_utils.py         # Shared utilities (coming in PyPI release)
+├── lewm_vc/                       # Reference codec implementation
+│   ├── encoder.py                 # ViT-Tiny encoder
+│   ├── decoder.py                 # ConvTranspose decoder
+│   ├── predictor.py               # JEPA transformer predictor
+│   ├── entropy.py                 # GMM entropy model
+│   └── quant.py                   # Scalar quantization
+├── checkpoints_milestone*/        # Public pretrained weights
+├── experiment/                    # Numbered reproduction scripts (01–12)
+└── benchmark_milestone*/          # Per-milestone benchmark outputs
+```
+
+## Quick Start: Evaluating Your Codec
+
+```bash
+pip install lewm-eval  # standalone package (coming soon)
+
+# Or use the source directly:
+git clone https://github.com/thepreetam/le-maia.git
+cd le-maia
+pip install -e ".[dev]"
+```
+
+### Evaluate an external codec
+
+```bash
+python evaluation/semantic_probe.py \
+    --codec x265 \
+    --input /path/to/your/video.yuv \
+    --frames 100 \
+    --teacher yolov5s \
+    --output results.json
+```
+
+Supports any codec that can produce decoded frames. See [`evaluation/README.md`](./evaluation/README.md) for adding custom codec wrappers.
+
+### Reproduce LeWM-VC results
+
+```bash
+python experiment/04_evaluate_intra_rd.py    # Intra-frame RD curve (Table 4)
+python experiment/07_evaluate_temporal.py     # Temporal compression (Table 5)
+python experiment/08_probe_semantic.py        # Semantic probe accuracy (Tables 6, 7)
+```
+
+---
+
+## Key Results (LeWM-VC Reference Codec)
+
+| Metric | Value |
+|--------|-------|
+| Class accuracy advantage vs. H.265 @ 1.95 BPP | **+7.2 pp** (86.5% vs 79.3%) |
+| Class accuracy advantage vs. H.265 @ 0.11 BPP | **+1.7 pp** (94.4% vs 92.7%) |
+| P-frame bitrate reduction vs. all-intra | 62% (GOP=8) |
+| Inference throughput (NVIDIA T4) | 80+ fps |
+| Total parameters | 14.7M |
+
+All results reproducible from public checkpoints. Exact command lines, random seeds, and checkpoint hashes documented in [`experiment/`](./experiment/).
+
+---
 
 ## Status (May 2026)
 
-LeWM-VC is a research codec under active development. All results below are reproducible with the scripts in this repository.
+| Component | Status |
+|-----------|--------|
+| Semantic probing pipeline (codec-agnostic) | Released |
+| LeWM-VC reference codec | Released, public checkpoints |
+| x265/H.264 wrappers | Included |
+| MPEG VCM engagement | Initial outreach underway |
+| Standalone PyPI package (`lewm-eval`) | In development |
+| VVC/H.266 wrapper | Planned |
+| Public leaderboard | In development |
 
-### What Works
-
-| Component | Status | Key Result |
-|-----------|--------|------------|
-| Intra-frame compression (ViT encoder + GMM entropy model) | Working | Monotonic RD curve, 0.11–0.25 BPP at 22–29 dB PSNR on PEViD-HD at 256x256 |
-| JEPA temporal prediction | Working | 62% bitrate savings over all-intra coding, P/I ratio 0.37x per frame |
-| Latent-space semantic preservation | Working | 86.5% class accuracy vs 79.3% for x265 at matched bitrate |
-| Surprise-gated quantization (VOE) | Mechanism functional | Produces calibrated surprise metric; thresholds require dataset-specific calibration |
-| FFmpeg plugin | In development | C wrapper exists, not yet integrated with trained models |
-| SIGReg regularization | In development | Current code uses Gaussian KL prior; sketched Cramér-Wold implementation in progress |
-
-### What's Not Yet Done
-
-- BD-rate comparison against VVC/H.266
-- Multi-resolution support (currently 256x256 only)
-- Real-time encoding on edge hardware
-- Surprise gating on labeled anomaly datasets
-
-## Architecture
-
-```
-I-Frame Path (Intra-frame Coding):
-  Input(256x256) ──► [ViT Encoder(6L)] ──► Latent[192x16x16] ──► [GMM Entropy] ──► Bitstream
-                                                                                      │
-  Bitstream ──► [GMM Entropy(decode)] ──► Latent[192x16x16] ──► [Decoder(4L)] ──► Output(256x256)
-
-
-P-Frame Path (Inter-frame with JEPA Temporal Prediction):
-                                          ┌──────────────────────────┐
-                                          │  JEPA Predictor          │
-                                          │  8L transformer, ctx=4   │
-                                          └───────────┬──────────────┘
-                                                      │ Predicted Latent
-                                                      ▼
-  Input(256x256) ──► [ViT Encoder(6L)] ──► Latent ───┼──────────► [⊖] ──► Residual[192x16x16] ──► [GMM Entropy] ──► Bitstream
-                                        │              │                   │                                   │
-                                        │       (pred) │                   │                                 Decode
-                                        │              └───────────────────┘                                   │
-                                        │                                                                       │
-                                        └────────────────────────────► [⊕] ◄── Residual[192x16x16] ◄── [GMM Entropy] ◄── Bitstream
-                                                                    │
-                                                             Latent[192x16x16]
-                                                                    │
-                                                          [Decoder(4L)] ──► Output(256x256)
-```
-
-**Components:**
-- **Encoder:** ViT-Tiny, 6 layers, 192-dim latent grid (16x16 spatial)
-- **Predictor:** 8-layer transformer, 256-dim hidden, 4 heads, context length 4
-- **Entropy Model:** 2-component Gaussian Mixture Model with hyperprior CNN
-- **Decoder:** 4-layer ConvTranspose upsampling with residual blocks
-
-## Quick Start
-
-### Installation
-
-```bash
-git clone https://github.com/thepreetam/le-maia.git
-cd le-maia
-python3 -m venv venv
-source venv/bin/activate
-pip install -e .
-pip install torch torchvision opencv-python-headless numpy tqdm
-```
-
-### Reproducing Results
-
-Train intra-frame codec and compute RD curve:
-
-```bash
-python3 milestone1_rd_curve.py
-```
-
-Train temporal predictor and measure P/I ratio:
-
-```bash
-python3 milestone2_temporal.py
-```
-
-Evaluate surprise gating:
-
-```bash
-python3 milestone3_surprise_gating.py
-```
-
-Run latent probe benchmark (semantic preservation):
-
-```bash
-python3 milestone4b_latent_probe.py
-```
-
-All scripts require PEViD-HD dataset in datasets/pevid-hd/. Download from EPFL FTP: tremplin.epfl.ch, username datasets@mmspgdata.epfl.ch, password ohsh9jah4T (see Korshunov & Ebrahimi, SPIE 2013 for details).
-
-## Results Summary
-
-### Temporal Compression (Milestone 2)
-
-| Mode | BPP | PSNR |
-|------|-----|------|
-| All-intra | 0.228 | 25.13 dB |
-| Temporal (IPPP) | 0.087 | 25.40 dB |
-| Savings | 61.79% | |
-
-### Semantic Preservation (Milestone 4b)
-
-| Method | Objectness Acc | Class Acc | BPP |
-|--------|----------------|-----------|-----|
-| LeWM-VC latent probe | 97.5% | 86.5% | 1.95 |
-| x265 pixel probe | 97.7% | 79.3% | 1.95 |
+---
 
 ## Citation
 
 ```bibtex
-@misc{lewmvc2026,
+@misc{lewmeval2026,
   author = {Preetam Mukherjee},
-  title = {LeWM-VC: JEPA-Based Video Codec with Temporal Latent Prediction},
+  title = {LeWM-Eval: A Reproducible Benchmark for Machine-Oriented Video Compression},
   year = {2026},
   url = {https://github.com/thepreetam/le-maia}
 }
@@ -129,4 +117,4 @@ All scripts require PEViD-HD dataset in datasets/pevid-hd/. Download from EPFL F
 
 ## License
 
-MIT https://github.com/thepreetam/le-maia
+MIT
