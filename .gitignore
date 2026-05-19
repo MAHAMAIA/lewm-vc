@@ -22,3 +22,34 @@ swarm.md
 thesis.md
 ffmpeg/README_FFMPEG.md
 arxiv.sty
+
+# macOS
+.DS_Store
+
+# Build artifacts
+*.o
+*.so
+*.pyc
+__pycache__/
+*.aux
+*.log
+*.fls
+*.out
+*.nav
+*.snm
+*.toc
+*.bbl
+*.blg
+
+# Project-specific
+checkpoints/
+checkpoints_milestone*/
+datasets/
+benchmark_data/
+archive/
+demos/
+docs/
+
+# Local files
+arxiv.sty
+gen_sd.py
