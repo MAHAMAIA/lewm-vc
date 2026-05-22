@@ -135,7 +135,7 @@ class Trainer:
         self.decoder = decoder.to(device)
         self.predictor = predictor.to(device)
         self.entropy = entropy.to(device)
-        self.quantizer = quantizer
+        self.quantizer = quantizer.to(device)
         self.lambda_rd = lambda_rd
         self.device = device
         self.mse_loss = nn.MSELoss()

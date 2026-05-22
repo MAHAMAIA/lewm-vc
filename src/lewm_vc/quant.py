@@ -13,6 +13,7 @@ import torch.nn as nn
 
 class QuantMode(Enum):
     """Quantization mode selection."""
+
     TRAINING = "training"
     INFERENCE = "inference"
 
@@ -112,7 +113,9 @@ class Quantizer(nn.Module):
         x_quantized = torch.round(x_noisy / self.step_size) * self.step_size
 
         max_val = self.step_size * (self.num_levels - 1) / 2
-        x_quantized = torch.clamp(x_quantized, -max_val, max_val)
+        x_quantized = torch.clamp(
+            x_quantized, -max_val.to(x_quantized.device), max_val.to(x_quantized.device)
+        )
 
         return x_quantized.detach() + x - x.detach()
 
@@ -131,7 +134,9 @@ class Quantizer(nn.Module):
         x_quantized = torch.round(x / self.step_size) * self.step_size
 
         max_val = self.step_size * (self.num_levels - 1) / 2
-        x_quantized = torch.clamp(x_quantized, -max_val, max_val)
+        x_quantized = torch.clamp(
+            x_quantized, -max_val.to(x_quantized.device), max_val.to(x_quantized.device)
+        )
 
         return x_quantized
 
@@ -220,18 +225,16 @@ class QuantizedTensor:
 
     def dequantize(self) -> torch.Tensor:
         """
-       Dequantize back to floating point.
+        Dequantize back to floating point.
 
-        Returns:
-            Original scale floating point tensor
+         Returns:
+             Original scale floating point tensor
         """
         return (self.data.float() - self.zero_point) * self.scale
 
 
 def quantize_tensor(
-    x: torch.Tensor,
-    num_bits: int = 8,
-    per_channel: bool = False
+    x: torch.Tensor, num_bits: int = 8, per_channel: bool = False
 ) -> QuantizedTensor:
     """
     Functional interface for quantization.
