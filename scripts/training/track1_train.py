@@ -187,10 +187,9 @@ class Trainer:
 
                 # Encode all frames in the GOP
                 latents = []
-                for t in range(G):
-                    z = self.encoder(batch[:, t])
-                    latents.append(z)
-                latents = torch.stack(latents, dim=1)  # [B, GOP, D, H', W']
+                flat = batch.view(B * G, C, H, W)
+                all_z = self.encoder(flat)
+                latents = all_z.view(B, G, *all_z.shape[1:])
 
                 # Predict each frame from up to 4 previous latents
                 pred_loss = 0.0
@@ -284,22 +283,23 @@ class Trainer:
                 batch = batch.to(self.device)
                 B, G, C, H, W = batch.shape
 
-                # Encode, quantize, compute rate, decode all frames
-                rd_loss = 0.0
-                for t in range(G):
-                    z = self.encoder(batch[:, t])
-                    qz = self.quantizer(z)
-                    rec = self.decoder(qz, target_size=(H, W))
+                # Batch-encode all frames: [B*G, 3, H, W] -> [B*G, D, H', W']
+                flat = batch.view(B * G, C, H, W)
+                all_z = self.encoder(flat)
+                all_qz = self.quantizer(all_z)
+                all_rec = self.decoder(all_qz)
 
-                    # Rate: cross-entropy from entropy model
-                    rate = self.entropy(qz).sum() / (B * H * W * 3)
+                # Reshape back to [B, G, ...]
+                all_z = all_z.view(B, G, *all_z.shape[1:])
+                all_qz = all_qz.view(B, G, *all_qz.shape[1:])
+                all_rec = all_rec.view(B, G, C, H, W)
 
-                    # Distortion: MSE
-                    dist = self.mse_loss(rec, batch[:, t])
+                # Rate + distortion in one pass
+                all_rate = self.entropy(all_qz.view(B * G, *all_qz.shape[2:]))[0]
+                all_rate = all_rate.view(B, G, -1).sum(dim=(2,))
+                all_dist = (all_rec - batch).pow(2).mean(dim=(2, 3, 4))
 
-                    rd_loss += self.lambda_rd * rate + dist
-
-                rd_loss = rd_loss / G
+                rd_loss = (self.lambda_rd * all_rate + all_dist).mean()
 
                 optimizer.zero_grad()
                 rd_loss.backward()
@@ -369,7 +369,7 @@ def main():
     decoder = LeWMDecoder(latent_dim=192)
     predictor = LeWMPredictor(latent_dim=192)
     entropy = HyperpriorEntropy(latent_dim=192)
-    quantizer = Quantizer(step_size=2.0 / 255.0)
+    quantizer = Quantizer(num_levels=256)
 
     n_params = (
         sum(p.numel() for p in encoder.parameters())

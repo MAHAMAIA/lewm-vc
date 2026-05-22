@@ -1,14 +1,16 @@
 """
 Training Pipeline for LeWM-VC Video Codec
 
-Implements 4-phase training per blueprint.md lines 83-101 and modules.md lines 227-232:
-- Phase 0: Decoder warmup (24h)
-- Phase 1: Joint RD optimization (72h)
-- Phase 2: QAT training (48h)
-- Phase 3: Distillation (optional)
+Phases:
+  Phase 0: JEPA warmup — train encoder + predictor with L_JEPA + SIGReg
+  Phase 1: Joint RD — full loss L = λ·R + D + γ·L_JEPA + δ·SIGReg
+  Phase 2: QAT training
+  Phase 3: Distillation (optional)
 
-Loss formula (exact per blueprint.md line 91):
-    L = λ·Rate + (0.7·MSE + 0.3·LPIPS) + 0.01·surprise
+Loss formula (paper eq. 5):
+    L_Total = R + λ·D + γ·L_JEPA + δ·L_SIGReg
+  where L_JEPA = ||g_phi(z_{<t}) - z_t||^2_2
+  and   L_SIGReg = KL(N(z|0,I)) = 0.5 * (mu² + sigma² - log(sigma²) - 1)
 """
 
 from pathlib import Path
@@ -21,6 +23,7 @@ from torch.utils.data import DataLoader, Dataset
 
 try:
     from torch.utils.tensorboard import SummaryWriter
+
     HAS_TENSORBOARD = True
 except ImportError:
     HAS_TENSORBOARD = False
@@ -90,11 +93,13 @@ class VideoDataset(Dataset):
         video_paths = split_config.get("videos", [])
 
         for video_info in video_paths:
-            self.sequences.append({
-                "path": video_info["path"],
-                "fps": video_info.get("fps", 30),
-                "frame_count": video_info.get("frame_count", 0),
-            })
+            self.sequences.append(
+                {
+                    "path": video_info["path"],
+                    "fps": video_info.get("fps", 30),
+                    "frame_count": video_info.get("frame_count", 0),
+                }
+            )
 
     def __len__(self) -> int:
         return len(self.sequences)
@@ -110,9 +115,7 @@ class VideoDataset(Dataset):
             Dictionary with 'frames' tensor [T, 3, H, W]
         """
         seq_info = self.sequences[idx]
-        frames = torch.rand(
-            self.sequence_length, 3, 256, 256
-        )
+        frames = torch.rand(self.sequence_length, 3, 256, 256)
         return {"frames": frames, "path": seq_info["path"]}
 
 
@@ -191,9 +194,7 @@ class LeWMTrainer:
             log_dir = config.get("logging", {}).get("log_dir", "runs")
             self.writer = SummaryWriter(log_dir)
 
-        self.checkpoint_dir = Path(
-            config.get("checkpoint", {}).get("dir", "checkpoints")
-        )
+        self.checkpoint_dir = Path(config.get("checkpoint", {}).get("dir", "checkpoints"))
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         self.global_step = 0
@@ -206,13 +207,14 @@ class LeWMTrainer:
         TrainingPhase.get_name(self.current_phase)
 
         if self.current_phase == TrainingPhase.DECODER_WARMUP:
+            # JEPA warmup: train encoder + predictor, freeze decoder + entropy
             for name, model in self.models.items():
                 if name in ["encoder", "predictor"]:
                     for param in model.parameters():
-                        param.requires_grad = False
+                        param.requires_grad = True
                 else:
                     for param in model.parameters():
-                        param.requires_grad = True
+                        param.requires_grad = False
 
         elif self.current_phase == TrainingPhase.JOINT_RD:
             for model in self.models.values():
@@ -234,15 +236,21 @@ class LeWMTrainer:
         self,
         frames: torch.Tensor,
         lambda_val: float,
+        gamma: float = 1.0,
+        delta: float = 0.01,
     ) -> dict[str, torch.Tensor]:
         """
-        Compute training loss using exact formula from blueprint.md:
+        Compute training loss per paper eq. 5:
+            L_Total = R + λ·D + γ·L_JEPA + δ·L_SIGReg
 
-        L = λ·Rate + (0.7·MSE + 0.3·LPIPS) + 0.01·surprise
+        L_JEPA = ||g_phi(z_{<t}) - z_t||^2_2  (latent prediction MSE)
+        L_SIGReg = KL(N(z|0,I))               (isotropic Gaussian regularization)
 
         Args:
             frames: Input frames [B, T, 3, H, W]
             lambda_val: Rate-distortion Lagrange multiplier
+            gamma: JEPA loss weight
+            delta: SIGReg loss weight
 
         Returns:
             Dictionary with loss components
@@ -251,6 +259,10 @@ class LeWMTrainer:
 
         latents = []
         surprises = []
+        jepa_loss = torch.tensor(0.0, device=frames.device)
+        sigreg_loss = torch.tensor(0.0, device=frames.device)
+        rates = []
+        reconstructions = []
 
         for frame_idx in range(num_frames):
             frame = frames[:, frame_idx]
@@ -264,54 +276,58 @@ class LeWMTrainer:
             if surprise is not None:
                 surprises.append(surprise)
 
-        predicted_latents = []
-        for frame_idx in range(1, num_frames):
-            context = latents[:frame_idx]
-            pred_mean, pred_std = self.predictor(context)
-            predicted_latents.append((pred_mean, pred_std))
+            # SIGReg accumulated per-frame
+            mu = latent.mean(dim=(2, 3), keepdim=True)
+            sigma_sq = latent.var(dim=(2, 3), keepdim=True) + 1e-8
+            kl = 0.5 * (mu**2 + sigma_sq - torch.log(sigma_sq) - 1)
+            sigreg_loss = sigreg_loss + kl.mean()
 
-        residuals = []
-        rates = []
+            # JEPA + Rate (frame_idx >= 1)
+            if frame_idx >= 1:
+                pred_mean, pred_std = self.predictor(latents[:frame_idx])
+                jepa_loss = jepa_loss + torch.nn.functional.mse_loss(pred_mean, latent)
 
-        for frame_idx in range(1, num_frames):
-            residual = latents[frame_idx] - predicted_latents[frame_idx - 1][0]
-            residuals.append(residual)
+                residual = latent - pred_mean
+                quant_residual = self.quantizer(residual)
+                rate, _ = self.entropy_model(quant_residual)
+                rates.append(rate)
 
-            quant_residual = self.quantizer(residual)
-            rate, _ = self.entropy_model(quant_residual)
-            rates.append(rate)
-
-        reconstructions = []
-        for frame_idx in range(num_frames):
-            quant_latent = self.quantizer(latents[frame_idx])
+            # Decode for distortion
+            quant_latent = self.quantizer(latent)
             recon = self.decoder(quant_latent)
             reconstructions.append(recon)
 
         reconstructions = torch.stack(reconstructions, dim=1)
 
         mse_loss = torch.nn.functional.mse_loss(reconstructions, frames)
-
         lpips_loss = self._compute_lpips_loss(reconstructions, frames)
-
         distortion_loss = 0.7 * mse_loss + 0.3 * lpips_loss
 
-        total_rate = torch.stack(rates).sum() if rates else torch.tensor(0.0)
-        rate_loss = lambda_val * total_rate
+        total_rate = torch.stack(rates).sum() if rates else torch.tensor(0.0, device=frames.device)
+        rate_loss = total_rate
 
-        surprise_loss = torch.tensor(0.0)
+        surprise_loss = torch.tensor(0.0, device=frames.device)
         if surprises:
             surprise_loss = 0.01 * torch.stack([s.mean() for s in surprises]).mean()
 
-        total_loss = rate_loss + distortion_loss + surprise_loss
+        total_loss = (
+            rate_loss
+            + lambda_val * distortion_loss
+            + gamma * jepa_loss
+            + delta * sigreg_loss
+            + surprise_loss
+        )
 
         return {
             "total_loss": total_loss,
             "rate_loss": rate_loss,
+            "rate_weighted": lambda_val * total_rate,
             "distortion_loss": distortion_loss,
             "mse_loss": mse_loss,
             "lpips_loss": lpips_loss,
+            "jepa_loss": jepa_loss,
+            "sigreg_loss": sigreg_loss,
             "surprise_loss": surprise_loss,
-            "rate_bits": total_rate,
         }
 
     def _compute_lpips_loss(
@@ -342,6 +358,10 @@ class LeWMTrainer:
         """
         Single training step.
 
+        Phase-dependent behavior:
+          Phase 0 (JEPA warmup): gamma=5.0, delta=0.1, lambda=0 (no RD)
+          Phase 1 (Joint RD):    gamma=1.0, delta=0.01, lambda from rate_controller
+
         Args:
             batch: Training batch with 'frames' tensor
             optimizer: Optimizer
@@ -353,21 +373,24 @@ class LeWMTrainer:
 
         b, t = frames.shape[:2]
 
-        complexity = self.rate_controller.estimate_complexity(
-            torch.randn(b, 192, 16, 16, device=self.device)
-        )
-        complexity = complexity.mean().item()
+        if self.current_phase == TrainingPhase.DECODER_WARMUP:
+            # JEPA warmup: predictor learns to forecast latents, no RD
+            gamma = 5.0
+            delta = 0.1
+            lambda_val = 0.0
+        else:
+            # Joint RD: full loss — use fixed lambda for speed; rate controller was predicting
+            # from random noise which wastes compute. Actual complexity will inform lambda in prod.
+            lambda_val = 0.001
+            gamma = 1.0
+            delta = 0.01
 
-        target_bpp = 0.15
-        lambda_val = self.rate_controller.predict_lambda(complexity, target_bpp)
-
-        losses = self.compute_loss(frames, lambda_val)
+        losses = self.compute_loss(frames, lambda_val, gamma=gamma, delta=delta)
 
         losses["total_loss"].backward()
 
         torch.nn.utils.clip_grad_norm_(
-            [p for m in self.models.values() for p in m.parameters()],
-            max_norm=1.0
+            [p for m in self.models.values() for p in m.parameters()], max_norm=1.0
         )
 
         optimizer.step()

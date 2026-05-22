@@ -65,7 +65,9 @@ class LeWMPredictor(nn.Module):
             activation="gelu",
             norm_first=True,
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer, num_layers=num_layers, enable_nested_tensor=False
+        )
 
         self.temporal_norm = nn.LayerNorm(hidden_dim)
 
@@ -78,10 +80,7 @@ class LeWMPredictor(nn.Module):
         self.mean_head = nn.Conv2d(hidden_dim, latent_dim, kernel_size=1)
         self.log_std_head = nn.Conv2d(hidden_dim, latent_dim, kernel_size=1)
 
-    def forward(
-        self,
-        context: list[torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, context: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass of the predictor network.
 
@@ -111,7 +110,12 @@ class LeWMPredictor(nn.Module):
         temporal_input = torch.stack(pooled, dim=1)
 
         if temporal_input.shape[1] < self.context_len:
-            padding = torch.zeros(b, self.context_len - temporal_input.shape[1], self.hidden_dim, device=temporal_input.device)
+            padding = torch.zeros(
+                b,
+                self.context_len - temporal_input.shape[1],
+                self.hidden_dim,
+                device=temporal_input.device,
+            )
             temporal_input = torch.cat([temporal_input, padding], dim=1)
 
         temporal_input = temporal_input + self.frame_tokens
@@ -125,7 +129,9 @@ class LeWMPredictor(nn.Module):
 
         last_frame_proj = projected[last_frame_idx]
 
-        combined = torch.cat([last_frame_proj, last_temporal.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, h, w)], dim=1)
+        combined = torch.cat(
+            [last_frame_proj, last_temporal.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, h, w)], dim=1
+        )
 
         spatial_features = self.spatial_conv(combined)
 
@@ -136,11 +142,7 @@ class LeWMPredictor(nn.Module):
 
         return mean, std
 
-    def predict(
-        self,
-        context: list[torch.Tensor],
-        sample: bool = True
-    ) -> torch.Tensor:
+    def predict(self, context: list[torch.Tensor], sample: bool = True) -> torch.Tensor:
         """
         Generate predicted latent with optional sampling.
 
@@ -161,11 +163,7 @@ class LeWMPredictor(nn.Module):
 
         return predicted
 
-    def nll_loss(
-        self,
-        context: list[torch.Tensor],
-        target: torch.Tensor
-    ) -> torch.Tensor:
+    def nll_loss(self, context: list[torch.Tensor], target: torch.Tensor) -> torch.Tensor:
         """
         Compute negative log-likelihood loss for training.
 
@@ -178,11 +176,9 @@ class LeWMPredictor(nn.Module):
         """
         mean, std = self.forward(context)
 
-        var = std ** 2
+        var = std**2
         nll = 0.5 * (
-            ((target - mean) ** 2) / var +
-            torch.log(var) +
-            torch.log(torch.tensor(2 * torch.pi))
+            ((target - mean) ** 2) / var + torch.log(var) + torch.log(torch.tensor(2 * torch.pi))
         )
 
         return nll.mean()
