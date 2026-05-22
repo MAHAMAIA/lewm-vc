@@ -367,7 +367,7 @@ def main():
     # Build models
     encoder = LeWMEncoder(latent_dim=192, patch_size=16)
     decoder = LeWMDecoder(latent_dim=192)
-    predictor = LeWMPredictor(latent_dim=192)
+    predictor = LeWMPredictor(latent_dim=192, context_len=6)
     entropy = HyperpriorEntropy(latent_dim=192)
     quantizer = Quantizer(num_levels=256)
 
