@@ -36,6 +36,15 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.5.0",
 ]
+train = [
+    "lpips>=0.1.4",
+    "tensorboard>=2.16.0",
+    "opencv-python-headless>=4.7.0",
+    "decord>=0.6.0",
+]
+wandb = [
+    "wandb>=0.18.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/lewm-vc/lewm-vc"
@@ -51,6 +60,7 @@ lewm_vc = ["py.typed"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+exclude = ["*.sh"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]

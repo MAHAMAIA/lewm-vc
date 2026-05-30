@@ -32,10 +32,11 @@ class HyperpriorEntropy(nn.Module):
         context: Dict containing μ, σ parameters for decoding
     """
 
-    def __init__(self, latent_dim: int = 192, hyper_channels: int = 320):
+    def __init__(self, latent_dim: int = 192, hyper_channels: int = 320, num_components: int = 1):
         super().__init__()
         self.latent_dim = latent_dim
         self.hyper_channels = hyper_channels
+        self.num_components = num_components
 
         self.hyperprior_cnn = nn.Sequential(
             nn.Conv2d(latent_dim, hyper_channels, 3, 1, 1),
@@ -51,6 +52,11 @@ class HyperpriorEntropy(nn.Module):
 
         self.entropy_bottleneck = None
 
+        # Zero-init the final layer so mu≈0, log_sigma≈0 at startup
+        # Prevents KL explosion when the entropy model unlocks
+        nn.init.zeros_(self.hyperprior_cnn[-1].weight)
+        nn.init.zeros_(self.hyperprior_cnn[-1].bias)
+
     def forward(self, residual: torch.Tensor) -> tuple[torch.Tensor, dict]:
         """
         Forward pass to estimate rate for residual latent.
@@ -64,8 +70,8 @@ class HyperpriorEntropy(nn.Module):
         """
         params = self.hyperprior_cnn(residual)
 
-        mu = params[:, :self.latent_dim, :, :]
-        log_sigma = params[:, self.latent_dim:, :, :]
+        mu = params[:, : self.latent_dim, :, :]
+        log_sigma = params[:, self.latent_dim :, :, :]
         sigma = torch.nn.functional.softplus(log_sigma) + 1e-5
 
         rate = self.gaussian_kl(residual, mu, sigma)
@@ -73,11 +79,7 @@ class HyperpriorEntropy(nn.Module):
         return rate, {"mu": mu, "sigma": sigma}
 
     @staticmethod
-    def gaussian_kl(
-        x: torch.Tensor,
-        mu: torch.Tensor,
-        sigma: torch.Tensor
-    ) -> torch.Tensor:
+    def gaussian_kl(x: torch.Tensor, mu: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
         """
         Compute Gaussian KL divergence in closed form (SIGReg).
 
@@ -93,9 +95,9 @@ class HyperpriorEntropy(nn.Module):
         Returns:
             kl: KL divergence per element [B, 1, H, W] or scalar
         """
-        sigma_sq = sigma ** 2
+        sigma_sq = sigma**2
 
-        kl = 0.5 * (mu ** 2 + sigma_sq - torch.log(sigma_sq) - 1)
+        kl = 0.5 * (mu**2 + sigma_sq - torch.log(sigma_sq) - 1)
 
         if mu.shape[1] == 1:
             kl = kl.sum()
@@ -121,8 +123,8 @@ class HyperpriorEntropy(nn.Module):
         """
         params = self.hyperprior_cnn(residual)
 
-        mu = params[:, :self.latent_dim, :, :]
-        log_sigma = params[:, self.latent_dim:, :, :]
+        mu = params[:, : self.latent_dim, :, :]
+        log_sigma = params[:, self.latent_dim :, :, :]
         sigma = torch.nn.functional.softplus(log_sigma) + 1e-5
 
         return mu, sigma

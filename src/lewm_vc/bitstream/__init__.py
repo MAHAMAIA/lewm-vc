@@ -1,15 +1,35 @@
 """
 Bitstream Package for LeWM-VC
 
-Implements NAL/OBU bitstream serialization and deserialization.
-Contains writer and reader classes for video bitstream handling.
+Implements NAL unit-based bitstream with zlib entropy coding.
 """
 
-from .reader import BitstreamReader
-from .writer import BitstreamWriter, NALUnitType
+from .ec import (
+    NALType,
+    compress_indices,
+    decompress_indices,
+    quantize_latent,
+    dequantize_indices,
+    encode_frame,
+    decode_frame,
+    write_sequence_header,
+    read_sequence_header,
+    write_eos,
+    pack_nal,
+    unpack_nal,
+)
 
 __all__ = [
-    "BitstreamWriter",
-    "BitstreamReader",
-    "NALUnitType",
+    "NALType",
+    "compress_indices",
+    "decompress_indices",
+    "quantize_latent",
+    "dequantize_indices",
+    "encode_frame",
+    "decode_frame",
+    "write_sequence_header",
+    "read_sequence_header",
+    "write_eos",
+    "pack_nal",
+    "unpack_nal",
 ]
