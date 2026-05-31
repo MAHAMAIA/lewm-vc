@@ -1,0 +1,1747 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <Group
+      location = "group:archive"
+      name = "archive">
+      <Group
+         location = "group:04212026"
+         name = "04212026">
+         <FileRef
+            location = "group:create_all_demos.py">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_hd.sh">
+         </FileRef>
+         <FileRef
+            location = "group:upload_checkpoints.sh">
+         </FileRef>
+         <FileRef
+            location = "group:eval_improved.py">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "group:benchmark"
+      name = "benchmark">
+      <FileRef
+         location = "group:run_benchmark.py">
+      </FileRef>
+      <FileRef
+         location = "group:create_demo_proof.py">
+      </FileRef>
+      <FileRef
+         location = "group:surveillance_benchmark.py">
+      </FileRef>
+      <FileRef
+         location = "group:SAVINGS_PROOF.md">
+      </FileRef>
+      <FileRef
+         location = "group:create_demo_real.py">
+      </FileRef>
+      <FileRef
+         location = "group:validate_and_demo.py">
+      </FileRef>
+      <FileRef
+         location = "group:validate_bdrate.py">
+      </FileRef>
+      <FileRef
+         location = "group:DATA_PROVENANCE_TEMPLATE.md">
+      </FileRef>
+      <FileRef
+         location = "group:BENCHMARK_RESULTS.md">
+      </FileRef>
+      <FileRef
+         location = "group:synthetic_video.py">
+      </FileRef>
+      <FileRef
+         location = "group:validate_bdrate_fixed.py">
+      </FileRef>
+      <FileRef
+         location = "group:PEVID_PROOF.md">
+      </FileRef>
+      <FileRef
+         location = "group:benchmark_original.py">
+      </FileRef>
+      <Group
+         location = "group:__pycache__"
+         name = "__pycache__">
+         <FileRef
+            location = "group:synthetic_video.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:run_benchmark.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:create_demo_real.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:create_demo.cpython-314.pyc">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:full_codec_benchmark.py">
+      </FileRef>
+      <FileRef
+         location = "group:benchmark_affine.py">
+      </FileRef>
+      <FileRef
+         location = "group:create_demo.py">
+      </FileRef>
+      <FileRef
+         location = "group:benchmark_nll.py">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:benchmark_data"
+      name = "benchmark_data">
+      <FileRef
+         location = "group:demo_video_meta.json">
+      </FileRef>
+      <Group
+         location = "group:test"
+         name = "test">
+         <FileRef
+            location = "group:quick_test_meta.json">
+         </FileRef>
+         <FileRef
+            location = "group:quick_test.mp4">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:demo_video_real_meta.json">
+      </FileRef>
+      <Group
+         location = "group:full_test"
+         name = "full_test">
+         <FileRef
+            location = "group:surveillance_001.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:surveillance_000.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:surveillance_002.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:surveillance_002_meta.json">
+         </FileRef>
+         <FileRef
+            location = "group:dataset_info.json">
+         </FileRef>
+         <FileRef
+            location = "group:surveillance_001_meta.json">
+         </FileRef>
+         <FileRef
+            location = "group:surveillance_000_meta.json">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:pevid_analysis.json">
+      </FileRef>
+      <FileRef
+         location = "group:pevid_proof.json">
+      </FileRef>
+      <FileRef
+         location = "group:benchmark_results.json">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:checkpoints"
+      name = "checkpoints">
+      <FileRef
+         location = "group:autoencoder_e70.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e15.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e60.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e40.pt">
+      </FileRef>
+      <Group
+         location = "group:gmm"
+         name = "gmm">
+         <FileRef
+            location = "group:entropy_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_epoch30.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_epoch30.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_best.pt">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:autoencoder_e25.pt">
+      </FileRef>
+      <FileRef
+         location = "group:ae_best.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e50.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e10.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e20.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e30.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e5.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e100.pt">
+      </FileRef>
+      <FileRef
+         location = "group:entropy_best.pt">
+      </FileRef>
+      <FileRef
+         location = "group:decoder.pt">
+      </FileRef>
+      <Group
+         location = "group:joint_phase0"
+         name = "joint_phase0">
+         <FileRef
+            location = "group:entropy_lambda_0.5_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.5_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.5_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_5.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_5.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.5_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_5.0_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.5_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_5.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.5_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.05_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.05_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.05_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_epoch40.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_5.0_epoch20.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_5.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_best.pt">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:rd_scratch"
+         name = "rd_scratch">
+         <FileRef
+            location = "group:ae_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_10.0_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.0001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_10.0_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_10.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_10.0_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.0005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_10.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_10.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_10.0_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.0001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_1.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_10.0_epoch10.pt">
+         </FileRef>
+         <FileRef
+            location = "group:autoencoder_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.0005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_1.0_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.1_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_10.0_epoch5.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_10.0_best.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_epoch13.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.1_best.pt">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:trained_e10.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_final.pt">
+      </FileRef>
+      <FileRef
+         location = "group:trained_e30.pt">
+      </FileRef>
+      <FileRef
+         location = "group:trained_e20.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e80.pt">
+      </FileRef>
+      <FileRef
+         location = "group:autoencoder_e90.pt">
+      </FileRef>
+      <FileRef
+         location = "group:trained_e40.pt">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:configs"
+      name = "configs">
+      <FileRef
+         location = "group:dataset.yaml">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:data"
+      name = "data">
+   </Group>
+   <Group
+      location = "group:datasets"
+      name = "datasets">
+      <Group
+         location = "group:pevid-hd"
+         name = "pevid-hd">
+         <FileRef
+            location = "group:droppingBag_day_indoor_1_1.mpg">
+         </FileRef>
+         <FileRef
+            location = "group:walking_day_outdoor_1_1.mpg">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:pevid-hd-manifest.json">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:demos"
+      name = "demos">
+      <Group
+         location = "group:images"
+         name = "images">
+         <FileRef
+            location = "group:debug_decoded3.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_cropped.png">
+         </FileRef>
+         <FileRef
+            location = "group:gated_region.png">
+         </FileRef>
+         <FileRef
+            location = "group:debug_decoded2.png">
+         </FileRef>
+         <FileRef
+            location = "group:check_orig.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_frame_1.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_frame_0.png">
+         </FileRef>
+         <FileRef
+            location = "group:trained_orig.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_frame_2.png">
+         </FileRef>
+         <FileRef
+            location = "group:demo_trained_frame.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_frame_3.png">
+         </FileRef>
+         <FileRef
+            location = "group:debug_orig.png">
+         </FileRef>
+         <FileRef
+            location = "group:pevid_frame_4.png">
+         </FileRef>
+         <FileRef
+            location = "group:demo_simple_frame.png">
+         </FileRef>
+         <FileRef
+            location = "group:h264_frame0.png">
+         </FileRef>
+         <FileRef
+            location = "group:debug_decoded.png">
+         </FileRef>
+         <FileRef
+            location = "group:trained100_orig.png">
+         </FileRef>
+         <FileRef
+            location = "group:baseline_region.png">
+         </FileRef>
+         <FileRef
+            location = "group:check_decoded.png">
+         </FileRef>
+         <FileRef
+            location = "group:trained100_decoded.png">
+         </FileRef>
+         <FileRef
+            location = "group:trained_decoded.png">
+         </FileRef>
+         <FileRef
+            location = "group:original_resized.png">
+         </FileRef>
+         <FileRef
+            location = "group:frame0.png">
+         </FileRef>
+         <FileRef
+            location = "group:frame.png">
+         </FileRef>
+         <FileRef
+            location = "group:demo_check2.png">
+         </FileRef>
+         <FileRef
+            location = "group:frame0_debug.png">
+         </FileRef>
+         <FileRef
+            location = "group:demo_check.png">
+         </FileRef>
+         <FileRef
+            location = "group:orig_region.png">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:videos"
+         name = "videos">
+         <FileRef
+            location = "group:demo_final.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_simple.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_trained_100ep.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_final_v2.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_trained.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_h264.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_trained_v2.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_video_proof.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_bilinear.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_video.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_latents.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:demo_video_real.mp4">
+         </FileRef>
+         <FileRef
+            location = "group:test_colors.mp4">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "group:docs"
+      name = "docs">
+      <FileRef
+         location = "group:thesis.md">
+      </FileRef>
+      <FileRef
+         location = "group:CHAT_SUMMARY.md">
+      </FileRef>
+      <FileRef
+         location = "group:notebook_outputs.md">
+      </FileRef>
+      <FileRef
+         location = "group:modules.md">
+      </FileRef>
+      <FileRef
+         location = "group:arxiv.tex">
+      </FileRef>
+      <FileRef
+         location = "group:README.md">
+      </FileRef>
+      <FileRef
+         location = "group:ROADMAP.md">
+      </FileRef>
+      <FileRef
+         location = "group:swarm.md">
+      </FileRef>
+      <FileRef
+         location = "group:CONTRIBUTING.md">
+      </FileRef>
+      <FileRef
+         location = "group:PATENT_DRAFT_PROVISIONAL.md">
+      </FileRef>
+      <FileRef
+         location = "group:CHAT_COMPLETE.md">
+      </FileRef>
+      <FileRef
+         location = "group:CLAUDE.md">
+      </FileRef>
+      <FileRef
+         location = "group:jepa_analysis.md">
+      </FileRef>
+      <FileRef
+         location = "group:blueprint.md">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:ffmpeg"
+      name = "ffmpeg">
+      <FileRef
+         location = "group:lewm_vc_encoder.c">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_common.c">
+      </FileRef>
+      <FileRef
+         location = "group:Makefile">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_decoder.o">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_encoder.o">
+      </FileRef>
+      <FileRef
+         location = "group:liblewmvc.so">
+      </FileRef>
+      <FileRef
+         location = "group:README_FFMPEG.md">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_common.o">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_common.h">
+      </FileRef>
+      <FileRef
+         location = "group:lewm_vc_decoder.c">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:ffmpeg_plugin"
+      name = "ffmpeg_plugin">
+   </Group>
+   <Group
+      location = "group:ieee"
+      name = "ieee">
+      <FileRef
+         location = "group:LaTeX_template.zip">
+      </FileRef>
+      <Group
+         location = "group:tracks"
+         name = "tracks">
+         <FileRef
+            location = "group:Call_Papers-Abstracts.pdf">
+         </FileRef>
+         <FileRef
+            location = "group:Call_Grand-Challenges.pdf">
+         </FileRef>
+         <FileRef
+            location = "group:Call_Satellite-Workshops.pdf">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:ICIP2026_Grand_Challenge_Draft.md">
+      </FileRef>
+      <FileRef
+         location = "group:Paper-Template.pdf">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:lewm_essentials"
+      name = "lewm_essentials">
+      <Group
+         location = "group:benchmark_results"
+         name = "benchmark_results">
+         <FileRef
+            location = "group:ablation_entropy.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig1_stability.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig6_convergence.png">
+         </FileRef>
+         <FileRef
+            location = "group:attention_correlation.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig3_attention.png">
+         </FileRef>
+         <FileRef
+            location = "group:rd_curve_corrected.csv">
+         </FileRef>
+         <FileRef
+            location = "group:rd_curve.png">
+         </FileRef>
+         <FileRef
+            location = "group:attention_heatmap.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig5_ablation.png">
+         </FileRef>
+         <FileRef
+            location = "group:rd_tradeoff.png">
+         </FileRef>
+         <FileRef
+            location = "group:rd_curve.csv">
+         </FileRef>
+         <FileRef
+            location = "group:efficiency_chart.png">
+         </FileRef>
+         <FileRef
+            location = "group:stability_chart.png">
+         </FileRef>
+         <FileRef
+            location = "group:rd_points_final.csv">
+         </FileRef>
+         <FileRef
+            location = "group:x265_baseline_final.csv">
+         </FileRef>
+         <FileRef
+            location = "group:fig4_rd_tradeoff.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig2_efficiency.png">
+         </FileRef>
+         <FileRef
+            location = "group:fig2_efficiency_fixed.png">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:checkpoints_corrected"
+         name = "checkpoints_corrected">
+         <FileRef
+            location = "group:ae_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.0001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.05_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.0001_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.0005_final.pt.gz">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.01_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:ae_lambda_0.0005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.005_final.pt">
+         </FileRef>
+         <FileRef
+            location = "group:entropy_lambda_0.01_final.pt">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:scripts"
+         name = "scripts">
+         <Group
+            location = "group:benchmark"
+            name = "benchmark">
+            <FileRef
+               location = "group:voe_script_predictor_fixed.py">
+            </FileRef>
+            <FileRef
+               location = "group:validate_with_training_loader.py">
+            </FileRef>
+            <FileRef
+               location = "group:validate_checkpoint.py">
+            </FileRef>
+            <FileRef
+               location = "group:create_all_demos.py">
+            </FileRef>
+            <FileRef
+               location = "group:create_demos_joint.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <FileRef
+               location = "group:test_recon.py">
+            </FileRef>
+            <FileRef
+               location = "group:debug_eval.py">
+            </FileRef>
+            <FileRef
+               location = "group:create_demos_best.py">
+            </FileRef>
+            <FileRef
+               location = "group:diag.py">
+            </FileRef>
+            <FileRef
+               location = "group:test_all_checkpoints.py">
+            </FileRef>
+            <FileRef
+               location = "group:create_demos_phase0.py">
+            </FileRef>
+            <FileRef
+               location = "group:benchmark_latency.py">
+            </FileRef>
+            <FileRef
+               location = "group:demo_best_checkpoint.py">
+            </FileRef>
+            <FileRef
+               location = "group:debug_rate.py">
+            </FileRef>
+            <FileRef
+               location = "group:voe_fallback.py">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:visualization"
+            name = "visualization">
+            <FileRef
+               location = "group:generate_charts.py">
+            </FileRef>
+            <FileRef
+               location = "group:efficiency_chart.py">
+            </FileRef>
+            <FileRef
+               location = "group:fig2.py">
+            </FileRef>
+            <FileRef
+               location = "group:fig6.py">
+            </FileRef>
+            <FileRef
+               location = "group:ablation_entropy.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <FileRef
+               location = "group:attention_correlation.py">
+            </FileRef>
+            <FileRef
+               location = "group:rd_tradeoff.py">
+            </FileRef>
+            <FileRef
+               location = "group:stability_chart.py">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:training"
+            name = "training">
+            <FileRef
+               location = "group:train_predictor.py">
+            </FileRef>
+            <FileRef
+               location = "group:train_with_hyperprior_entropy_model.py">
+            </FileRef>
+            <FileRef
+               location = "group:upgrade_entropy_transformer.py">
+            </FileRef>
+            <FileRef
+               location = "group:mi300x_train.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <FileRef
+               location = "group:mi300x_train_v2.py">
+            </FileRef>
+            <FileRef
+               location = "group:colab_training.py">
+            </FileRef>
+            <FileRef
+               location = "group:finetune_high_lambda.py">
+            </FileRef>
+            <FileRef
+               location = "group:train_sota.py">
+            </FileRef>
+            <FileRef
+               location = "group:train_local.py">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:__init__.py">
+         </FileRef>
+         <Group
+            location = "group:evaluation"
+            name = "evaluation">
+            <FileRef
+               location = "group:eval_best.py">
+            </FileRef>
+            <FileRef
+               location = "group:compare_rd.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_complete_v2.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_phase0_correct.py">
+            </FileRef>
+            <FileRef
+               location = "group:get_rd_numbers.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_complete_v3.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_best_correct.py">
+            </FileRef>
+            <FileRef
+               location = "group:plot_rd.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_final.py">
+            </FileRef>
+            <FileRef
+               location = "group:compare_phase0.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_best.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_joint.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_improved.py">
+            </FileRef>
+            <FileRef
+               location = "group:eval_rd_complete_fixed.py">
+            </FileRef>
+         </Group>
+      </Group>
+      <Group
+         location = "group:src"
+         name = "src">
+         <Group
+            location = "group:lewm_vc"
+            name = "lewm_vc">
+            <FileRef
+               location = "group:predictor.py">
+            </FileRef>
+            <FileRef
+               location = "group:working_decoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:decoder.py">
+            </FileRef>
+            <Group
+               location = "group:bitstream"
+               name = "bitstream">
+               <FileRef
+                  location = "group:__init__.py">
+               </FileRef>
+               <FileRef
+                  location = "group:reader.py">
+               </FileRef>
+               <FileRef
+                  location = "group:writer.py">
+               </FileRef>
+            </Group>
+            <FileRef
+               location = "group:video_encoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <Group
+               location = "group:utils"
+               name = "utils">
+               <FileRef
+                  location = "group:__init__.py">
+               </FileRef>
+               <FileRef
+                  location = "group:rate_control.py">
+               </FileRef>
+            </Group>
+            <Group
+               location = "group:__pycache__"
+               name = "__pycache__">
+               <FileRef
+                  location = "group:encoder.cpython-312.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:predictor.cpython-312.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:quant.cpython-312.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:__init__.cpython-312.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:working_decoder.cpython-312.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:decoder.cpython-312.pyc">
+               </FileRef>
+            </Group>
+            <FileRef
+               location = "group:encoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:quant.py">
+            </FileRef>
+            <FileRef
+               location = "group:entropy.py">
+            </FileRef>
+         </Group>
+      </Group>
+   </Group>
+   <Group
+      location = "group:logs"
+      name = "logs">
+      <Group
+         location = "group:gmm_sweep_logs"
+         name = "gmm_sweep_logs">
+         <FileRef
+            location = "group:gmm_sweep_20260423_045355.csv">
+         </FileRef>
+         <FileRef
+            location = "group:gmm_sweep_20260423_041248.txt">
+         </FileRef>
+         <FileRef
+            location = "group:gmm_sweep_20260423_045355.txt">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "group:md"
+      name = "md">
+      <FileRef
+         location = "group:LeWM-VC_ AI Video Coding Research Report.md">
+      </FileRef>
+      <FileRef
+         location = "group:FocusArea.md">
+      </FileRef>
+      <FileRef
+         location = "group:Synthesis.md">
+      </FileRef>
+      <FileRef
+         location = "group:LeWM-VC_ AI Video Coding Research.md">
+      </FileRef>
+      <FileRef
+         location = "group:Viability.md">
+      </FileRef>
+      <FileRef
+         location = "group:qwen_notes.md">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:notebooks"
+      name = "notebooks">
+      <FileRef
+         location = "group:MAIA_JEPA_extended.ipynb">
+      </FileRef>
+      <FileRef
+         location = "group:__init__.py">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:pipeline"
+      name = "pipeline">
+      <FileRef
+         location = "group:gmm_eval.py">
+      </FileRef>
+      <FileRef
+         location = "group:eval_joint_rd_fixed.py">
+      </FileRef>
+      <FileRef
+         location = "group:gmm_train.py">
+      </FileRef>
+      <FileRef
+         location = "group:jepa_eval.py">
+      </FileRef>
+      <FileRef
+         location = "group:compute_bdrate.py">
+      </FileRef>
+      <FileRef
+         location = "group:eval_joint_rd.py">
+      </FileRef>
+      <FileRef
+         location = "group:train_joint_phase0.py">
+      </FileRef>
+      <FileRef
+         location = "group:jepa_train.py">
+      </FileRef>
+      <Group
+         location = "group:__pycache__"
+         name = "__pycache__">
+         <FileRef
+            location = "group:gmm_eval.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:jepa_eval.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:compute_bdrate.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:gmm_train.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:jepa_train.cpython-314.pyc">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:train_gmm.py">
+      </FileRef>
+      <FileRef
+         location = "group:train.py">
+      </FileRef>
+      <FileRef
+         location = "group:eval_rd.py">
+      </FileRef>
+      <FileRef
+         location = "group:gmm_lambda_sweep.py">
+      </FileRef>
+      <FileRef
+         location = "group:eval.py">
+      </FileRef>
+      <FileRef
+         location = "group:eval_rd_complete.py">
+      </FileRef>
+      <Group
+         location = "group:src"
+         name = "src">
+         <Group
+            location = "group:lewm_vc"
+            name = "lewm_vc">
+            <FileRef
+               location = "group:predictor.py">
+            </FileRef>
+            <FileRef
+               location = "group:working_decoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:decoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:video_encoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <Group
+               location = "group:utils"
+               name = "utils">
+               <FileRef
+                  location = "group:__init__.py">
+               </FileRef>
+               <FileRef
+                  location = "group:rate_control.py">
+               </FileRef>
+            </Group>
+            <Group
+               location = "group:__pycache__"
+               name = "__pycache__">
+               <FileRef
+                  location = "group:encoder.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:predictor.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:__init__.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:entropy.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:working_decoder.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:decoder.cpython-314.pyc">
+               </FileRef>
+            </Group>
+            <FileRef
+               location = "group:encoder.py">
+            </FileRef>
+            <FileRef
+               location = "group:quant.py">
+            </FileRef>
+            <FileRef
+               location = "group:entropy.py">
+            </FileRef>
+         </Group>
+      </Group>
+   </Group>
+   <FileRef
+      location = "group:pyproject.toml">
+   </FileRef>
+   <FileRef
+      location = "group:README.md">
+   </FileRef>
+   <Group
+      location = "group:scripts"
+      name = "scripts">
+      <Group
+         location = "group:training"
+         name = "training">
+         <FileRef
+            location = "group:finetune_ae_rd.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_rd_from_scratch.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_contextual.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_joint_bitstream.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_on_autoencoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_affine_phase1.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_original.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_kl.py">
+         </FileRef>
+         <FileRef
+            location = "group:finetune_joint.py">
+         </FileRef>
+         <FileRef
+            location = "group:finetune_sweep.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_phase1.py">
+         </FileRef>
+         <FileRef
+            location = "group:__init__.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_affine.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_stable_final.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_joint_nll_fixed.py">
+         </FileRef>
+         <FileRef
+            location = "group:finetune_autoencoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_stable.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_full.py">
+         </FileRef>
+         <FileRef
+            location = "group:colab_training.py">
+         </FileRef>
+         <FileRef
+            location = "group:finetune_ae_rd_final.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_nll_fixed.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_nll.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_stage2.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_joint_nll.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_final.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_entropy_nll_robust.py">
+         </FileRef>
+         <FileRef
+            location = "group:train_local.py">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:affine.py">
+      </FileRef>
+      <FileRef
+         location = "group:__init__.py">
+      </FileRef>
+      <FileRef
+         location = "group:analyze_latents.py">
+      </FileRef>
+      <FileRef
+         location = "group:check_entropy_params.py">
+      </FileRef>
+      <FileRef
+         location = "group:voe_predictor.py">
+      </FileRef>
+      <FileRef
+         location = "group:diagnose_entropy.py">
+      </FileRef>
+      <FileRef
+         location = "group:debug_affine.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_entropy.py">
+      </FileRef>
+      <FileRef
+         location = "group:upload_checkpoints.sh">
+      </FileRef>
+      <FileRef
+         location = "group:inspect_latent_standalone.py">
+      </FileRef>
+      <FileRef
+         location = "group:voe_script_surprise.py">
+      </FileRef>
+      <FileRef
+         location = "group:voe_script_predictor.py">
+      </FileRef>
+      <FileRef
+         location = "group:inspect_latent.py">
+      </FileRef>
+      <FileRef
+         location = "group:fix_entropy.py">
+      </FileRef>
+      <FileRef
+         location = "group:analyze_original_autoencoder.py">
+      </FileRef>
+   </Group>
+   <Group
+      location = "group:src"
+      name = "src">
+      <Group
+         location = "group:lewm_vc"
+         name = "lewm_vc">
+         <FileRef
+            location = "group:predictor.py">
+         </FileRef>
+         <FileRef
+            location = "group:working_decoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:decoder.py">
+         </FileRef>
+         <Group
+            location = "group:bitstream"
+            name = "bitstream">
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <Group
+               location = "group:__pycache__"
+               name = "__pycache__">
+               <FileRef
+                  location = "group:reader.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:__init__.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:writer.cpython-314.pyc">
+               </FileRef>
+            </Group>
+            <FileRef
+               location = "group:reader.py">
+            </FileRef>
+            <FileRef
+               location = "group:writer.py">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:video_encoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:__init__.py">
+         </FileRef>
+         <Group
+            location = "group:utils"
+            name = "utils">
+            <FileRef
+               location = "group:__init__.py">
+            </FileRef>
+            <Group
+               location = "group:__pycache__"
+               name = "__pycache__">
+               <FileRef
+                  location = "group:rate_control.cpython-314.pyc">
+               </FileRef>
+               <FileRef
+                  location = "group:__init__.cpython-314.pyc">
+               </FileRef>
+            </Group>
+            <FileRef
+               location = "group:rate_control.py">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:__pycache__"
+            name = "__pycache__">
+            <FileRef
+               location = "group:encoder.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:predictor.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:video_encoder.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:entropy.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:working_decoder.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:decoder.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:quant.cpython-314.pyc">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:encoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:quant.py">
+         </FileRef>
+         <FileRef
+            location = "group:entropy.py">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:scripts"
+         name = "scripts">
+         <FileRef
+            location = "group:train_decoder.py">
+         </FileRef>
+         <FileRef
+            location = "group:__init__.py">
+         </FileRef>
+         <Group
+            location = "group:__pycache__"
+            name = "__pycache__">
+            <FileRef
+               location = "group:train_decoder.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:train.cpython-314.pyc">
+            </FileRef>
+            <FileRef
+               location = "group:__init__.cpython-314.pyc">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:train.py">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:lewm_vc.egg-info"
+         name = "lewm_vc.egg-info">
+         <FileRef
+            location = "group:PKG-INFO">
+         </FileRef>
+         <FileRef
+            location = "group:SOURCES.txt">
+         </FileRef>
+         <FileRef
+            location = "group:requires.txt">
+         </FileRef>
+         <FileRef
+            location = "group:top_level.txt">
+         </FileRef>
+         <FileRef
+            location = "group:dependency_links.txt">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "group:tests"
+      name = "tests">
+      <FileRef
+         location = "group:test_rate_control.py">
+      </FileRef>
+      <FileRef
+         location = "group:__init___apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_decoder.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_entropy_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_bitstream_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_quant.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_encoder.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_quant_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:__init__.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_predictor_apr14.py">
+      </FileRef>
+      <Group
+         location = "group:__pycache__"
+         name = "__pycache__">
+         <FileRef
+            location = "group:test_decoder.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_decoder.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_quant.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_predictor.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_entropy.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_rate_control.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_bitstream.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_encoder.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:__init__.cpython-314.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_training.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_integration.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+         <FileRef
+            location = "group:test_thread_safety.cpython-314-pytest-9.0.2.pyc">
+         </FileRef>
+      </Group>
+      <FileRef
+         location = "group:test_decoder_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_training.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_predictor.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_integration.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_entropy.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_encoder_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_training_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_bitstream.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_rate_control_apr14.py">
+      </FileRef>
+      <FileRef
+         location = "group:test_integration_apr14.py">
+      </FileRef>
+   </Group>
+</Workspace>

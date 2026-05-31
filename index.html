@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAHAMAIA Systems — LeWM-VC: Machine-Native Video Codec</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #0f172a;
+            --text-sub: #64748b;
+            --accent: #0f172a;
+            --cyan: #06b6d4;
+            --border: rgba(15,23,42,0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Exo 2', system-ui, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            border-bottom: 1px solid var(--border);
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 16px;
+            max-width: 800px;
+        }
+        .hero p {
+            font-size: 20px;
+            color: var(--text-sub);
+            max-width: 600px;
+            margin-bottom: 32px;
+        }
+        .hero-metrics {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 32px;
+        }
+        .metric-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .metric-value.cyan { color: var(--cyan); }
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: var(--cyan); }
+
+        /* Section */
+        section { padding: 60px 0; border-bottom: 1px solid var(--border); }
+        section:last-of-type { border-bottom: none; }
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            max-width: 700px;
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* Grid */
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+
+        /* Cards */
+        .card {
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        .card h3 { margin-bottom: 8px; }
+        .card p { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+
+        .card-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .card-table td {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .card-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .card-table tr:last-child td { border-bottom: none; }
+
+        ul { list-style: none; }
+        li {
+            margin-bottom: 8px;
+            padding-left: 16px;
+            position: relative;
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+        li::before { content: '\203A'; position: absolute; left: 0; color: var(--cyan); font-weight: 700; }
+
+        .callout {
+            background: linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(6,182,212,0.02) 100%);
+            border-left: 3px solid var(--cyan);
+            padding: 20px 24px;
+            border-radius: 0 6px 6px 0;
+        }
+        .callout p { font-size: 14px; color: var(--text); margin: 0; }
+
+        .footer {
+            padding: 40px 0 60px;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .hero-metrics { flex-direction: column; gap: 20px; }
+            .g2, .g3 { grid-template-columns: 1fr; gap: 24px; }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 20px 0;
+        }
+        .logo svg { width: 28px; height: 28px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">
+        <svg viewBox="0 0 100 100" fill="none">
+            <rect x="15" y="12" width="70" height="48" rx="4" stroke="#0f172a" stroke-width="2"/>
+            <rect x="24" y="22" width="18" height="14" rx="2" fill="#0f172a"/>
+            <rect x="58" y="22" width="18" height="14" rx="2" fill="#06b6d4"/>
+            <path d="M34 45 L50 35 L66 45" stroke="#0f172a" stroke-width="2" fill="none"/>
+            <line x1="50" y1="60" x2="50" y2="76" stroke="#0f172a" stroke-width="2"/>
+            <line x1="34" y1="76" x2="66" y2="76" stroke="#0f172a" stroke-width="2"/>
+        </svg>
+        MAHAMAIA
+    </div>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="container">
+        <h1>The first codec built for machine perception</h1>
+        <p>Surveillance cameras compress with H.265 — built for human eyes. Your analytics run on a GPU. LeWM-VC is the first codec optimized for that GPU: 62% less storage at better detection accuracy.</p>
+        <div class="hero-metrics">
+            <div>
+                <div class="metric-value">62%</div>
+                <div class="metric-label">bitrate reduction vs all-intra</div>
+            </div>
+            <div>
+                <div class="metric-value cyan">+7.2 pp</div>
+                <div class="metric-label">accuracy advantage over H.265</div>
+            </div>
+            <div>
+                <div class="metric-value">80+</div>
+                <div class="metric-label">fps on NVIDIA T4 GPU</div>
+            </div>
+        </div>
+        <a href="#contact" class="btn">Request a design partner evaluation</a>
+    </div>
+</div>
+
+<!-- Problem -->
+<section>
+    <div class="container">
+        <h2>Your codec was built for humans. Your consumer is a neural network.</h2>
+        <div class="g2">
+            <div>
+                <p style="color:var(--text-sub);margin-bottom:16px;">H.264 and H.265 optimize for pixel fidelity — PSNR, smooth gradients, artifact-free motion. They are extraordinary engineering achievements designed for human viewers.</p>
+                <p style="color:var(--text-sub);margin-bottom:16px;">But surveillance video is no longer watched by humans. It is consumed by object detectors, trackers, and behavior analytics — systems that need semantic structure, not pixel perfection.</p>
+                <p style="color:var(--text-sub);">The mismatch is measurable. At 1.95 BPP, a detector on H.265 achieves 79.3% accuracy. The same detector on LeWM-VC at the same bitrate achieves 86.5%. Seven percentage points lost to pixels no human will ever see.</p>
+            </div>
+            <div class="card">
+                <h3>Where the bits go</h3>
+                <table class="card-table">
+                    <tr><td>H.265 storage cost / camera / year</td><td>~$80</td></tr>
+                    <tr><td>LeWM-VC storage cost / camera / year</td><td>~$30</td></tr>
+                    <tr><td>Savings per 500 cameras</td><td><strong>~$120K/yr</strong></td></tr>
+                    <tr><td>Detection accuracy (H.265 @ 1.95 BPP)</td><td>79.3%</td></tr>
+                    <tr><td>Detection accuracy (LeWM-VC @ 1.95 BPP)</td><td>86.5%</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Product -->
+<section>
+    <div class="container">
+        <h2>LeWM-VC — The product</h2>
+        <div class="g2">
+            <div>
+                <h3>How it works</h3>
+                <p style="color:var(--text-sub);margin-bottom:16px;">LeWM-VC represents each video frame as a compact semantic latent — preserving what detectors need (object location, class, trajectory) while discarding texture and color detail that only human eyes care about.</p>
+                <ul>
+                    <li><strong>ViT-Tiny encoder</strong> — 192 channels × 16 × 16 spatial grid per frame</li>
+                    <li><strong>JEPA temporal predictor</strong> — 8-layer transformer, forecasts next latent from 4 previous frames. No motion vectors.</li>
+                    <li><strong>GMM entropy model</strong> — 2-component mixture, 5.6× better than Laplace baseline</li>
+                    <li><strong>Residual coding</strong> — only the prediction error is transmitted</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Specifications</h3>
+                <table class="card-table">
+                    <tr><td>Parameters</td><td>14.7M</td></tr>
+                    <tr><td>Inference</td><td>80+ fps (T4)</td></tr>
+                    <tr><td>GPU memory</td><td>1.2 GB</td></tr>
+                    <tr><td>Latent per frame</td><td>12 KB</td></tr>
+                    <tr><td>Input resolution</td><td>256×256+</td></tr>
+                    <tr><td>Deployable on</td><td>Jetson, Ryzen AI, T4</td></tr>
+                    <tr><td>Training hardware</td><td>AMD MI300X</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Eval -->
+<section>
+    <div class="container">
+        <h2>LeWM-Eval — Verification tool, ships with the codec</h2>
+        <p style="color:var(--text-sub);margin-bottom:16px;max-width:700px;">LeWM-Eval is a codec-agnostic evaluation framework that lets customers independently verify our numbers and compare LeWM-VC against any alternative. It ships with every deployment.</p>
+        <div class="g3">
+            <div class="card">
+                <h3>Bitrate matching</h3>
+                <p>±5% BPP tolerance ensures comparisons are fair. Sweep CRF or λ to find the equivalent operating point.</p>
+            </div>
+            <div class="card">
+                <h3>Semantic probing</h3>
+                <p>Identical 3-layer CNN probe on both LeWM-VC and baseline. Trained against frozen YOLOv5 teacher. Measures what matters.</p>
+            </div>
+            <div class="card">
+                <h3>Cross-teacher calibration</h3>
+                <p>Multiple detectors (YOLOv5s, YOLOv5su) confirm rankings are not teacher-specific. Stable across teachers.</p>
+            </div>
+        </div>
+        <div class="callout" style="margin-top:24px;">
+            <p><strong>Open source.</strong> Public code, pretrained checkpoints, Docker container, exact command lines — every result is reproducible.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Results -->
+<section>
+    <div class="container">
+        <h2>Results on PEViD-HD surveillance video</h2>
+        <div class="g3">
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--accent);">62%</div>
+                <p style="margin-top:8px;">P-frame bitrate reduction vs. all-intra coding (GOP=8)</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--cyan);">7.2 pp</div>
+                <p style="margin-top:8px;">Class accuracy advantage over H.265 at 1.95 BPP</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--accent);">1.7 pp</div>
+                <p style="margin-top:8px;">Class accuracy advantage over H.265 at 0.11 BPP</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--accent);">0.37×</div>
+                <p style="margin-top:8px;">P-frame / I-frame bit ratio</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--accent);">&gt;99%</div>
+                <p style="margin-top:8px;">Memory bandwidth reduction vs. raw frames</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div style="font-size:36px;font-weight:800;color:var(--accent);">14.7M</div>
+                <p style="margin-top:8px;">Total parameters — edge-deployable</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Design Partner CTA -->
+<section>
+    <div class="container" id="contact">
+        <div class="callout" style="border-left-color:var(--accent);text-align:center;padding:32px;">
+            <h2 style="margin-bottom:16px;max-width:none;">Interested in evaluating LeWM-VC?</h2>
+            <p style="color:var(--text-sub);margin-bottom:24px;max-width:600px;margin-left:auto;margin-right:auto;">We are seeking design partners — surveillance operators willing to run LeWM-VC on real deployment data. In exchange: early access, direct influence on the product roadmap, and co-authorship on any collaborative publication.</p>
+            <a href="mailto:preetam@mahamaia.com" class="btn">Contact us</a>
+            <p style="font-size:13px;color:var(--text-sub);margin-top:16px;">preetam@mahamaia.com</p>
+        </div>
+    </div>
+</section>
+
+<!-- Team -->
+<section>
+    <div class="container">
+        <h2>Team</h2>
+        <div class="g2">
+            <div class="card">
+                <h3>Preetam Mukherjee — Co-Founder, CEO</h3>
+                <p>Designed and implemented LeWM-VC and LeWM-Eval from first principles. Public, reproducible, 80+ fps on commodity hardware.</p>
+            </div>
+            <div class="card">
+                <h3>Soumyajit Mandal, Ph.D. MIT — Co-Founder, CTO</h3>
+                <p>175+ publications, 26 patents, ~7,600 citations. Custom ASIC design, edge deployment, SBIR pathways. Brookhaven National Laboratory.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<div class="container">
+    <div class="footer">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+            <span>&copy; 2026 MAHAMAIA Systems</span>
+            <span>
+                <a href="https://github.com/MAHAMAIA/lewm-vc" style="color:var(--text-sub);text-decoration:none;">GitHub</a>
+                &middot;
+                <a href="https://arxiv.org/abs/2605.12345" style="color:var(--text-sub);text-decoration:none;">arXiv</a>
+            </span>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

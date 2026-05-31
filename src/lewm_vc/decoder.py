@@ -35,25 +35,30 @@ class LeWMDecoder(nn.Module):
         YUV tensor of shape [B, 3, H, W]
     """
 
-    def __init__(self, latent_dim: int = 192):
+    def __init__(self, latent_dim: int = 192, hidden_dim: int = 512):
         super().__init__()
-        self.up1 = nn.ConvTranspose2d(latent_dim, 128, kernel_size=4, stride=2, padding=1)
-        self.res1 = self._res_block(128)
+        c1 = hidden_dim
+        c2 = hidden_dim // 2
+        c3 = hidden_dim // 4
+        c4 = max(hidden_dim // 8, 8)
 
-        self.up2 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)
-        self.res2 = self._res_block(64)
+        self.up1 = nn.ConvTranspose2d(latent_dim, c1, kernel_size=4, stride=2, padding=1)
+        self.res1 = self._res_block(c1)
 
-        self.up3 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1)
-        self.res3 = self._res_block(32)
+        self.up2 = nn.ConvTranspose2d(c1, c2, kernel_size=4, stride=2, padding=1)
+        self.res2 = self._res_block(c2)
 
-        self.up4 = nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1)
+        self.up3 = nn.ConvTranspose2d(c2, c3, kernel_size=4, stride=2, padding=1)
+        self.res3 = self._res_block(c3)
 
-        self.final = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
+        self.up4 = nn.ConvTranspose2d(c3, c4, kernel_size=4, stride=2, padding=1)
+
+        self.final = nn.Conv2d(c4, 3, kernel_size=3, stride=1, padding=1)
 
         self.post_filter = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
+            nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1),
         )
 
     @staticmethod
@@ -70,13 +75,11 @@ class LeWMDecoder(nn.Module):
         return nn.Sequential(
             nn.Conv2d(ch, ch, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(ch, ch, kernel_size=3, stride=1, padding=1)
+            nn.Conv2d(ch, ch, kernel_size=3, stride=1, padding=1),
         )
 
     def forward(
-        self,
-        quant_latent: torch.Tensor,
-        residual: torch.Tensor | None = None
+        self, quant_latent: torch.Tensor, residual: torch.Tensor | None = None
     ) -> torch.Tensor:
         """
         Forward pass of the decoder network.

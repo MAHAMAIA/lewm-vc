@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAHAMAIA Systems | Seed Deck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7f8fa;
+            --accent: #0f172a;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --slide-w: 1200px;
+            --slide-h: 675px;
+            --cyan: #06b6d4;
+            --cyan-light: rgba(6,182,212,0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Exo 2', system-ui, sans-serif;
+            background: #e8e8ec;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 40px 0 100px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .slide {
+            width: var(--slide-w); height: var(--slide-h);
+            background: var(--bg-primary);
+            margin-bottom: 50px;
+            padding: 48px 56px;
+            display: none; flex-direction: column;
+            position: relative;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+        .slide.active { display: flex; }
+        .slide::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--cyan) 100%);
+        }
+
+        /* Header / Footer */
+        .slide-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .slide-number {
+            font-size: 11px; font-weight: 500; color: #94a3b8;
+            letter-spacing: 0.18em; text-transform: uppercase;
+        }
+        .slide-footer {
+            position: absolute; bottom: 22px; left: 56px; right: 56px;
+            font-size: 10px; color: #94a3b8; letter-spacing: 0.1em;
+            border-top: 1px solid rgba(15,23,42,0.08); padding-top: 12px;
+            display: flex; justify-content: space-between;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 60px; font-weight: 800; line-height: 1.05; margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, #1e293b 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 {
+            font-size: 34px; font-weight: 700; line-height: 1.15; margin-bottom: 16px;
+            color: var(--accent);
+        }
+        h3 {
+            font-size: 11px; font-weight: 600; margin-bottom: 10px;
+            color: #64748b; text-transform: uppercase; letter-spacing: 0.08em;
+        }
+        .subtitle { font-size: 22px; font-weight: 400; color: var(--text-sub); }
+        p { font-size: 14px; color: var(--text-sub); line-height: 1.55; }
+        strong { color: var(--text-main); font-weight: 600; }
+        .content-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Grids */
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+        /* Lists */
+        ul { list-style: none; }
+        li {
+            margin-bottom: 8px; padding-left: 16px; position: relative;
+            font-size: 13px; color: var(--text-sub); line-height: 1.5;
+        }
+        li::before { content: '\203A'; position: absolute; left: 0; color: var(--cyan); font-weight: 700; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        td {
+            padding: 10px 0; border-bottom: 1px solid rgba(15,23,42,0.06);
+            font-size: 13px; color: var(--text-sub); vertical-align: top;
+        }
+        td:last-child { text-align: right; font-weight: 600; color: var(--text-main); }
+
+        /* Components */
+        .card {
+            background: var(--bg-secondary); border-radius: 8px;
+            padding: 18px; height: 100%;
+        }
+        .card h4 {
+            font-size: 12px; font-weight: 700; color: var(--text-main);
+            margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .card p { font-size: 12px; color: var(--text-sub); line-height: 1.5; }
+        .card ul { margin-top: 6px; }
+        .card ul li { font-size: 11px; margin-bottom: 4px; }
+
+        .stat {
+            text-align: center; padding: 24px 16px;
+            background: var(--bg-secondary); border-radius: 8px;
+        }
+        .stat-num { font-size: 52px; font-weight: 800; color: var(--accent); line-height: 1; }
+        .stat-num.cyan { color: var(--cyan); }
+        .stat-label { font-size: 12px; color: var(--text-sub); margin-top: 8px; line-height: 1.3; }
+        .stat-sub { font-size: 10px; color: #94a3b8; margin-top: 4px; }
+
+        .callout {
+            background: var(--cyan-light); border-left: 3px solid var(--cyan);
+            padding: 16px 20px; border-radius: 0 6px 6px 0; margin: 10px 0;
+        }
+        .callout p { font-size: 13px; color: var(--text-main); margin: 0; }
+        .callout.bold p { font-weight: 600; font-size: 14px; }
+
+        .banner {
+            background: var(--accent); color: #fff; padding: 16px 24px;
+            border-radius: 6px; text-align: center;
+            box-shadow: 0 4px 20px rgba(15,23,42,0.15);
+        }
+        .banner p { color: #fff; font-weight: 700; font-size: 15px; margin: 0; }
+
+        .tag {
+            display: inline-block; padding: 2px 10px; border-radius: 10px;
+            font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .tag-cyan { background: var(--cyan-light); color: var(--cyan); }
+        .tag-gray { background: rgba(100,116,139,0.1); color: #64748b; }
+
+        /* Pipeline */
+        .pipe { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 0; }
+        .pipe-node { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 72px; }
+        .pipe-box {
+            width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+            background: var(--bg-secondary); border-radius: 8px; margin-bottom: 6px;
+        }
+        .pipe-box.dark { background: var(--accent); }
+        .pipe-box.dark span { color: #fff; font-size: 8px; font-weight: 700; }
+        .pipe-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .pipe-arrow { color: #94a3b8; font-size: 18px; opacity: 0.5; }
+        .pipe-up { font-size: 13px; opacity: 0.4; }
+
+        /* Timeline */
+        .tl { display: flex; justify-content: space-between; gap: 16px; padding: 20px 0; position: relative; }
+        .tl::before {
+            content: ''; position: absolute; top: 48px; left: 50px; right: 50px;
+            height: 2px; background: #e2e8f0;
+        }
+        .tl-step { flex: 1; text-align: center; position: relative; }
+        .tl-dot {
+            width: 20px; height: 20px; background: #cbd5e1; border-radius: 50%;
+            margin: 0 auto 14px; position: relative; z-index: 1;
+        }
+        .tl-dot.cyan { background: var(--cyan); }
+        .tl-dot.dark { background: var(--accent); }
+        .tl-year { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+        .tl-year.cyan { color: var(--cyan); }
+        .tl-desc { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+        .tl-items { list-style: none; font-size: 10px; color: #94a3b8; }
+        .tl-items li { font-size: 10px; padding: 2px 0; padding-left: 0; }
+        .tl-items li::before { display: none; }
+        .tl-items li::before { content: '\2022 '; color: #94a3b8; }
+
+        /* Use of Funds */
+        .funds { display: flex; gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; }
+        .funds-item { flex: 1; text-align: center; padding: 8px; }
+        .funds-item .pct { font-size: 28px; font-weight: 800; display: block; }
+        .funds-item .pct.c1 { color: var(--cyan); }
+        .funds-item .pct.c2 { color: var(--accent); }
+        .funds-item .pct.c3 { color: #94a3b8; }
+        .funds-item .label { font-size: 11px; font-weight: 600; color: var(--text-main); margin-top: 4px; }
+        .funds-item .detail { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+
+        /* Block accent bars */
+        .bl { border-left: 3px solid var(--accent); padding-left: 16px; }
+        .bl-c { border-left: 3px solid var(--cyan); padding-left: 16px; }
+
+        /* Navigation */
+        .nav {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 20px; z-index: 1000;
+            background: rgba(255,255,255,0.95); padding: 10px 22px;
+            border-radius: 30px; box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        }
+        .nav button {
+            background: var(--accent); color: #fff; border: none;
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .nav button:hover { background: var(--cyan); }
+        .nav button:disabled { background: #cbd5e1; cursor: default; }
+        .nav-counter { font-size: 13px; color: var(--text-sub); font-weight: 500; min-width: 60px; text-align: center; }
+
+        .icon-tl { vertical-align: middle; margin-right: 6px; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .slide { box-shadow: none; margin-bottom: 0; page-break-after: always; }
+            .slide.active { display: flex !important; }
+            .nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <button id="prevBtn">&larr;</button>
+    <span class="nav-counter" id="counter">1 / 14</span>
+    <button id="nextBtn">&rarr;</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let cur = 0;
+    const slides = document.querySelectorAll('.slide');
+    const n = slides.length;
+    const prev = document.getElementById('prevBtn');
+    const next = document.getElementById('nextBtn');
+    const ctr = document.getElementById('counter');
+    function show(i) {
+        slides[cur].classList.remove('active');
+        cur = (i + n) % n;
+        slides[cur].classList.add('active');
+        ctr.textContent = (cur + 1) + ' / ' + n;
+        prev.disabled = cur === 0;
+        next.disabled = cur === n - 1;
+    }
+    prev.onclick = function() { if (cur > 0) show(cur - 1); };
+    next.onclick = function() { if (cur < n - 1) show(cur + 1); };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft' && cur > 0) show(cur - 1);
+        if (e.key === 'ArrowRight' && cur < n - 1) show(cur + 1);
+    });
+    show(0);
+});
+</script>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 01  TITLE                                                   -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide active">
+    <div class="slide-header"><div class="slide-number">01 // TITLE</div></div>
+    <div class="content-wrap" style="justify-content:center;align-items:center;text-align:center;">
+        <svg width="72" height="72" viewBox="0 0 100 100" fill="none" style="margin-bottom:28px;">
+            <rect x="15" y="12" width="70" height="48" rx="4" stroke="#0f172a" stroke-width="2"/>
+            <rect x="24" y="22" width="18" height="14" rx="2" fill="#0f172a"/>
+            <rect x="58" y="22" width="18" height="14" rx="2" fill="#06b6d4"/>
+            <path d="M34 45 L50 35 L66 45" stroke="#0f172a" stroke-width="2" fill="none"/>
+            <line x1="50" y1="60" x2="50" y2="76" stroke="#0f172a" stroke-width="2"/>
+            <line x1="34" y1="76" x2="66" y2="76" stroke="#0f172a" stroke-width="2"/>
+        </svg>
+        <h1>MAHAMAIA</h1>
+        <p class="subtitle">Compression Infrastructure for Machine-Oriented Video</p>
+        <div style="margin-top:44px;">
+            <p style="font-size:17px;font-weight:600;color:var(--text-main);">Preetam Mukherjee</p>
+            <p style="font-size:12px;color:#94a3b8;margin-top:4px;">Founder &middot; preetam@mahamaia.com</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Seed Deck &middot; 2026</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 02  THE PROBLEM                                             -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">02 // PROBLEM</div></div>
+    <h2>Codecs optimize for human eyes.<br>Your consumer is a GPU.</h2>
+    <div class="content-wrap">
+        <div class="g4" style="margin-bottom:16px;">
+            <div style="text-align:center;padding:8px;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="5" y="10" width="30" height="20" rx="3" stroke="#0f172a" stroke-width="1.5"/><circle cx="14" cy="18" r="3" fill="#0f172a"/></svg>
+                <p style="font-size:10px;margin-top:6px;color:#94a3b8;">Surveillance</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><ellipse cx="20" cy="18" rx="12" ry="8" stroke="#0f172a" stroke-width="1.5"/><path d="M8 18 L15 13 L15 23 Z" fill="#0f172a"/></svg>
+                <p style="font-size:10px;margin-top:6px;color:#94a3b8;">Autonomous</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="24" rx="2" stroke="#0f172a" stroke-width="1.5"/><circle cx="20" cy="18" r="4" fill="#0f172a"/></svg>
+                <p style="font-size:10px;margin-top:6px;color:#94a3b8;">Smart City</p>
+            </div>
+            <div style="text-align:center;padding:8px;">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 5 L25 15 L35 15 L27 22 L30 32 L20 26 L10 32 L13 22 L5 15 L15 15 Z" stroke="#0f172a" stroke-width="1.5"/></svg>
+                <p style="font-size:10px;margin-top:6px;color:#94a3b8;">ML Pipeline</p>
+            </div>
+        </div>
+        <div class="g2">
+            <div>
+                <h3>The Mismatch</h3>
+                <ul>
+                    <li><strong>82%</strong> of internet traffic is video. The fastest-growing consumer is a neural network.</li>
+                    <li>H.264/5 optimizes for pixel fidelity &mdash; <strong>PSNR, smooth gradients, artifact-free motion.</strong></li>
+                    <li>Machine perception doesn't need beautiful pixels. It needs <strong>preserved semantic structure</strong> at minimum bitrate.</li>
+                </ul>
+            </div>
+            <div>
+                <h3>The Decoding Tax</h3>
+                <ul>
+                    <li>Every detection pipeline decodes full-resolution frames &rarr; discards semantics &rarr; re-infers from pixels.</li>
+                    <li>Storage and bandwidth optimized for the <strong>wrong objective.</strong></li>
+                    <li>Motion vectors consume 30&ndash;40% of bitstream at low rates &mdash; <strong>wasted on machines.</strong></li>
+                </ul>
+            </div>
+        </div>
+        <div class="callout" style="margin-top:10px;">
+            <p><strong>Structural market failure:</strong> Every camera compressing with H.265 today is optimizing for the wrong consumer. This requires a new codec stack, not a software update.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 02</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 03  TIMING                                                  -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">03 // TIMING</div></div>
+    <h2>Three forcing functions align in 2026.</h2>
+    <div class="content-wrap">
+        <div class="g3" style="flex:1;">
+            <div class="card">
+                <h4>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-tl"><circle cx="7" cy="7" r="5.5" stroke="#06b6d4" stroke-width="1.5"/><path d="M7 3.5 L7 7 L9.5 9" stroke="#06b6d4" stroke-width="1.5"/></svg>
+                    MPEG VCM
+                </h4>
+                <p>ISO/IEC JTC1/SC29/WG2 is standardizing machine-oriented video coding right now. Once ratified, <strong>every camera OEM must certify compliance.</strong> The company with the reference evaluation standard wins.</p>
+            </div>
+            <div class="card">
+                <h4>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-tl"><rect x="2" y="3.5" width="10" height="7" rx="1" stroke="#06b6d4" stroke-width="1.5"/><line x1="4.5" y1="3.5" x2="4.5" y2="10.5" stroke="#06b6d4" stroke-width="1"/></svg>
+                    EU AI Act
+                </h4>
+                <p>High-risk AI systems require <strong>documented task accuracy and privacy compliance.</strong> No standardized measurement exists. LeWM-Eval fills the gap.</p>
+            </div>
+            <div class="card">
+                <h4>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="icon-tl"><rect x="3" y="3.5" width="8" height="7" rx="1" stroke="#06b6d4" stroke-width="1.5"/><line x1="7" y1="3.5" x2="7" y2="10.5" stroke="#06b6d4" stroke-width="1"/></svg>
+                    Edge Compute
+                </h4>
+                <p>Jetson Orin, Ryzen AI NPU make <strong>real-time neural inference viable at the camera level.</strong> The substrate for learned codecs is deployable in 2026. This was not true in 2022.</p>
+            </div>
+        </div>
+        <div class="callout bold">
+            <p>The window is open. It will not remain open indefinitely.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 03</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 04  SOLUTION                                                -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">04 // SOLUTION</div></div>
+    <h2>Two products. One infrastructure layer.</h2>
+    <div class="content-wrap" style="justify-content:center;">
+        <div class="g2" style="flex:0 0 auto;">
+            <div class="card" style="border-left:3px solid var(--accent);border-radius:8px 8px 8px 0;">
+                <h4 style="font-size:14px;color:var(--accent);">LeWM-VC</h4>
+                <p style="font-size:12px;margin-bottom:8px;">Codec built for machine perception. Compresses to a <strong>semantic latent representation</strong> rather than pixels.</p>
+                <ul><li>62% bitrate reduction vs. H.265 at matched task accuracy</li>
+                <li>80+ fps on T4 &bull; 14.7M params &bull; Real-time on commodity hardware</li>
+                <li>No motion vectors &bull; JEPA latent prediction &bull; Open source</li></ul>
+            </div>
+            <div class="card" style="border-left:3px solid var(--cyan);border-radius:8px 8px 8px 0;">
+                <h4 style="font-size:14px;color:var(--cyan);">LeWM-Eval</h4>
+                <p style="font-size:12px;margin-bottom:8px;">The evaluation standard for machine-oriented compression. Measures <strong>task accuracy at matched bitrate.</strong></p>
+                <ul><li>Reproducible probe methodology &bull; Cross-teacher calibration</li>
+                <li>Designed to become the <strong>BD-rate of machine codecs</strong></li>
+                <li>PyPI package &bull; Open leaderboard &bull; Docker container</li></ul>
+            </div>
+        </div>
+        <div class="pipe" style="margin:12px 0 8px;">
+            <div class="pipe-node">
+                <div class="pipe-box"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="3" y="7" width="22" height="14" rx="2" stroke="#0f172a" stroke-width="1.5"/><circle cx="11" cy="14" r="3" fill="#0f172a"/></svg></div>
+                <span class="pipe-label">Camera</span>
+            </div>
+            <span class="pipe-arrow">&rarr;</span>
+            <div class="pipe-node">
+                <div class="pipe-box dark"><span>LeWM</span></div>
+                <span class="pipe-label">Compression</span>
+            </div>
+            <span class="pipe-arrow">&rarr;</span>
+            <div class="pipe-node">
+                <div class="pipe-box"><svg width="28" height="28" viewBox="0 0 28 28"><rect x="5" y="5" width="18" height="18" rx="2" stroke="#0f172a" fill="none"/><rect x="9" y="9" width="4" height="4" fill="#0f172a"/><rect x="15" y="9" width="4" height="4" fill="#0f172a"/></svg></div>
+                <span class="pipe-label">Perception</span>
+            </div>
+            <span class="pipe-arrow" style="font-size:13px;">&uarr;</span>
+            <div class="pipe-node">
+                <span class="pipe-label" style="color:var(--cyan);font-weight:700;">LeWM-Eval</span>
+            </div>
+        </div>
+        <div class="banner">
+            <p>A codec without an evaluation standard is a research artifact. A standard without a codec is a consulting practice. Together they define the category.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 04</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 05  TECHNOLOGY                                              -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">05 // TECHNOLOGY</div></div>
+    <h2>The insight in one slide.</h2>
+    <div class="content-wrap">
+        <div class="g2" style="margin-bottom:16px;">
+            <div>
+                <div style="padding:16px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:10px;">
+                    <span class="tag tag-gray" style="margin-bottom:6px;">Traditional Codecs</span>
+                    <p style="font-size:13px;">Predict frames in <strong>pixel space</strong> using hand-crafted motion vectors. Optimized for visual reconstruction.</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;color:var(--cyan);font-size:18px;padding-left:8px;">&darr;</div>
+                <div style="padding:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fafafa;">
+                    <p style="font-size:11px;color:#94a3b8;">H.264/5: ME/MC + DCT + CABAC &bull; PSNR optimized</p>
+                </div>
+            </div>
+            <div>
+                <div style="padding:16px;border:1px solid var(--cyan);border-radius:8px;margin-bottom:10px;background:var(--cyan-light);">
+                    <span class="tag tag-cyan" style="margin-bottom:6px;">LeWM-VC</span>
+                    <p style="font-size:13px;">Predict frames in <strong>latent semantic space</strong> using a learned transformer. Optimized for what downstream models need.</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;color:var(--cyan);font-size:18px;padding-left:8px;">&darr;</div>
+                <div style="padding:14px;border:1px solid var(--cyan);border-radius:8px;background:rgba(6,182,212,0.03);">
+                    <p style="font-size:11px;color:#64748b;"><strong style="color:var(--cyan);">ViT Encoder</strong> &rarr; <strong style="color:var(--cyan);">JEPA Predictor</strong> &rarr; Residual Coding &bull; <strong>No motion vectors</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="callout">
+            <p><strong>Result:</strong> Smaller files. Better machine perception. No motion vector overhead. The JEPA predictor models scene dynamics through self-attention &mdash; object permanence, occlusion, coherent motion &mdash; without the rigidity of block-based estimation.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 05</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 06  RESULTS                                                 -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">06 // RESULTS</div></div>
+    <h2>Measured. Reproducible. Public.</h2>
+    <div class="content-wrap">
+        <div class="g3" style="margin-bottom:20px;">
+            <div class="stat">
+                <div class="stat-num">62%</div>
+                <div class="stat-label">Bitrate reduction<br>vs. all-intra coding</div>
+                <div class="stat-sub">Surveillance, matched task accuracy</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num cyan">7.2 pp</div>
+                <div class="stat-label">Class accuracy advantage<br>over H.265 at matched BPP</div>
+                <div class="stat-sub">Identical probe architecture</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">80+</div>
+                <div class="stat-label">FPS on NVIDIA T4 GPU</div>
+                <div class="stat-sub">14.7M parameters, real-time capable</div>
+            </div>
+        </div>
+        <div class="g2">
+            <div>
+                <h3>Evaluation</h3>
+                <ul>
+                    <li>Probe trained on <strong>latents</strong> vs. <strong>H.265 decoded frames</strong> &mdash; identical architecture</li>
+                    <li>Bitrate matched within &plusmn;5%</li>
+                    <li>Two teachers: YOLOv5s &amp; YOLOv5su</li>
+                </ul>
+            </div>
+            <div>
+                <h3>Key Findings</h3>
+                <ul>
+                    <li>@ 1.95 BPP: <strong>86.5%</strong> (LeWM) vs <strong>79.3%</strong> (x265) class accuracy</li>
+                    <li>@ 0.11 BPP: <strong>94.4%</strong> (LeWM) vs <strong>92.7%</strong> (x265) class accuracy</li>
+                    <li>GMM entropy model: <strong>5.6&times;</strong> bitrate reduction vs. Laplace</li>
+                </ul>
+            </div>
+        </div>
+        <div class="callout" style="margin-top:8px;">
+            <p>Code, checkpoints, and command lines at <strong>github.com/MAHAMAIA/lewm-vc</strong>. Every number reproducible from public artifacts.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 06</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 07  MOAT / STANDARD PLAY                                    -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">07 // MOAT</div></div>
+    <h2>The evaluation standard <em>is</em> the moat.</h2>
+    <div class="content-wrap">
+        <p style="font-size:13px;margin-bottom:4px;">BD-rate is a one-page ITU document from 2001 that became the mandatory metric for every codec paper for 25 years. Its author did not invent H.264. He defined how to measure it.</p>
+        <div class="tl">
+            <div class="tl-step">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2001</div>
+                <div class="tl-desc">BD-rate published</div>
+                <ul class="tl-items"><li>ITU standard, one page</li></ul>
+            </div>
+            <div class="tl-step">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2003</div>
+                <div class="tl-desc">H.264 references it</div>
+            </div>
+            <div class="tl-step">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2012</div>
+                <div class="tl-desc">H.265 references it</div>
+            </div>
+            <div class="tl-step">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2026</div>
+                <div class="tl-desc">25-year mandatory standard</div>
+                <ul class="tl-items"><li>Still used in every paper</li></ul>
+            </div>
+        </div>
+        <div class="tl">
+            <div class="tl-step">
+                <div class="tl-dot cyan"></div>
+                <div class="tl-year cyan">2026</div>
+                <div class="tl-desc">LeWM-Eval launched</div>
+                <ul class="tl-items"><li>PyPI, arXiv benchmark</li></ul>
+            </div>
+            <div class="tl-step">
+                <div class="tl-dot" style="background:#94a3b8;"></div>
+                <div class="tl-year" style="color:#94a3b8;">2027</div>
+                <div class="tl-desc">MPEG VCM references it</div>
+            </div>
+            <div class="tl-step">
+                <div class="tl-dot" style="background:#94a3b8;"></div>
+                <div class="tl-year" style="color:#94a3b8;">2028+</div>
+                <div class="tl-desc">Every machine codec paper references it</div>
+                <ul class="tl-items"><li>Standards lock-in</li><li>Ecosystem moat</li></ul>
+            </div>
+        </div>
+        <div class="callout bold">
+            <p>We don't need to have the best codec forever. We need to be the thing that determines what "best" means. Like Dolby &mdash; they don't make speakers, they certify them.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 07</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 08  TRACTION                                                -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">08 // TRACTION</div></div>
+    <h2>Real output. Honest accounting.</h2>
+    <div class="content-wrap">
+        <div class="g2">
+            <div>
+                <h3>Built</h3>
+                <ul>
+                    <li>Working codec (LeWM-VC) with public checkpoints</li>
+                    <li>arXiv preprint with full reproducibility kit (Docker, hashes, seeds)</li>
+                    <li>LeWM-Eval methodology defined and published</li>
+                    <li>AMD MI300X compute partnership</li>
+                </ul>
+                <div style="margin-top:16px;">
+                    <h3>In Progress</h3>
+                    <ul>
+                        <li>LeWM-Eval standalone PyPI package</li>
+                        <li>Multi-codec leaderboard</li>
+                        <li>Full PEViD-HD corpus training</li>
+                    </ul>
+                </div>
+            </div>
+            <div>
+                <h3>Community</h3>
+                <ul>
+                    <li>Public repo: github.com/MAHAMAIA/lewm-vc</li>
+                    <li>Checkpoints v0.1.0 tagged and released</li>
+                    <li>Docker container for inference</li>
+                    <li>Design partner conversations active</li>
+                </ul>
+                <div class="callout" style="margin-top:16px;">
+                    <p><strong>Key ask:</strong> Seed capital accelerates dataset licensing, full training on 10+ sequences, co-founder recruitment, and MPEG VCM engagement.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 08</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 09  MARKET SIZE                                             -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">09 // MARKET</div></div>
+    <h2>Bottom-up TAM. First-principles math.</h2>
+    <div class="content-wrap">
+        <div class="g3" style="margin-bottom:12px;">
+            <div class="card" style="text-align:center;">
+                <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">GDPR Camera Market</p>
+                <div style="font-size:38px;font-weight:800;color:var(--accent);">8M</div>
+                <p style="font-size:11px;color:var(--text-sub);">annual deployments</p>
+                <div style="margin:8px 0;font-size:20px;color:#94a3b8;">&darr;</div>
+                <div style="font-size:24px;font-weight:700;color:var(--accent);">2M</div>
+                <p style="font-size:11px;color:var(--text-sub);">with ML analytics (25%)</p>
+                <div style="margin:8px 0;font-size:20px;color:#94a3b8;">&darr;</div>
+                <div style="font-size:22px;font-weight:800;color:var(--cyan);">$100M ARR</div>
+                <p style="font-size:10px;color:#94a3b8;">@ $50/camera/year SDK</p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Adjacent Markets</p>
+                <div style="font-size:38px;font-weight:800;color:var(--accent);">10&times;</div>
+                <p style="font-size:11px;color:var(--text-sub);">multiplier on beachhead</p>
+                <ul style="margin-top:12px;">
+                    <li style="font-size:11px;margin-bottom:4px;">Autonomous vehicle pipelines</li>
+                    <li style="font-size:11px;margin-bottom:4px;">Industrial inspection</li>
+                    <li style="font-size:11px;margin-bottom:4px;">Logistics / warehouse</li>
+                    <li style="font-size:11px;margin-bottom:4px;">Smart retail</li>
+                </ul>
+                <div style="margin-top:8px;font-size:22px;font-weight:800;color:var(--accent);">$1B+ ARR</div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Certification (Dolby Model)</p>
+                <div style="font-size:38px;font-weight:800;color:var(--accent);">50</div>
+                <p style="font-size:11px;color:var(--text-sub);">camera OEMs &times; $200K/yr</p>
+                <div style="margin:8px 0;font-size:20px;color:#94a3b8;">&darr;</div>
+                <div style="font-size:22px;font-weight:800;color:var(--cyan);">$10M ARR</div>
+                <p style="font-size:10px;color:#94a3b8;">at very high margins</p>
+            </div>
+        </div>
+        <div class="callout">
+            <p>Source: Omdia 2025. All calculations first-principles from beachhead market.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 09</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 10  BUSINESS MODEL                                          -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">10 // BUSINESS MODEL</div></div>
+    <h2>Three revenue streams, sequenced.</h2>
+    <div class="content-wrap">
+        <div class="g3" style="flex:1;">
+            <div class="card" style="border-top:3px solid var(--cyan);">
+                <h4>Stream 1 &mdash; SaaS / Edge SDK</h4>
+                <p>Per-camera-per-month subscription for LeWM-VC compression pipeline. Design partner validated.</p>
+                <p style="font-size:12px;font-weight:700;color:var(--text-main);margin-top:10px;">12&ndash;18 months</p>
+            </div>
+            <div class="card" style="border-top:3px solid #94a3b8;">
+                <h4>Stream 2 &mdash; Codec Licensing</h4>
+                <p>Per-device royalty to camera OEMs and NVR vendors embedding LeWM-VC in firmware.</p>
+                <p style="font-size:12px;font-weight:700;color:var(--text-main);margin-top:10px;">18&ndash;36 months</p>
+            </div>
+            <div class="card" style="border-top:3px solid #94a3b8;">
+                <h4>Stream 3 &mdash; Certification</h4>
+                <p>Paid LeWM-Eval certification for codec vendors. VCM compliance documentation.</p>
+                <p style="font-size:12px;font-weight:700;color:var(--text-main);margin-top:10px;">24&ndash;48 months</p>
+            </div>
+        </div>
+        <div class="callout bold">
+            <p>Stream 1 generates revenue regardless of standardization timelines. Streams 2 and 3 build the durable moat.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 10</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 11  GO-TO-MARKET                                            -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">11 // GO-TO-MARKET</div></div>
+    <h2>Design partner motion, not enterprise SaaS.</h2>
+    <div class="content-wrap">
+        <div class="g2">
+            <div>
+                <h3>Beachhead Customer</h3>
+                <ul>
+                    <li>Smart city / enterprise surveillance, 50+ cameras</li>
+                    <li>GDPR-regulated markets</li>
+                    <li>Active storage cost + compliance problems</li>
+                    <li>Technical buyer: VP Eng or CTO</li>
+                </ul>
+                <h3 style="margin-top:16px;">Sales Motion</h3>
+                <ul>
+                    <li>Identify 5 target organizations</li>
+                    <li>Co-development at reduced cost for deployment data</li>
+                    <li>Convert to paying at renewal</li>
+                    <li>Case studies open next 20 accounts</li>
+                </ul>
+            </div>
+            <div>
+                <h3>First Targets</h3>
+                <ul>
+                    <li>European smart city platform &mdash; <span class="tag tag-cyan">in conversation</span></li>
+                    <li>US airport security integrator &mdash; <span class="tag tag-gray">target</span></li>
+                    <li>Retail loss prevention network &mdash; <span class="tag tag-gray">target</span></li>
+                </ul>
+                <div class="callout" style="margin-top:20px;">
+                    <p><strong>Why design partners:</strong> Codec infrastructure requires co-development. The first 3 partners define the product. Revenue follows standardization.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 11</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 12  TEAM                                                    -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">12 // TEAM</div></div>
+    <h2>One founder, scaling deliberately.</h2>
+    <div class="content-wrap">
+        <div class="g2">
+            <div>
+                <div style="padding:16px;border:1px solid #e2e8f0;border-radius:8px;">
+                    <p style="font-size:17px;font-weight:700;color:var(--text-main);">Preetam Mukherjee</p>
+                    <p style="font-size:12px;color:#94a3b8;margin-bottom:10px;">Founder</p>
+                    <ul>
+                        <li>Architect of LeWM-VC: JEPA, ViT encoder, codec pipeline</li>
+                        <li>AMD MI300X compute relationship</li>
+                        <li>arXiv publication, full reproducibility posture</li>
+                        <li>Open-source track record</li>
+                    </ul>
+                </div>
+            </div>
+            <div>
+                <h3>Seeking Co-Founder</h3>
+                <p style="font-size:12px;">Production engineering or enterprise BD background. Candidates in conversation.</p>
+                <h3 style="margin-top:16px;">Key Hires (Seed)</h3>
+                <ul>
+                    <li>ML Engineer &mdash; training pipeline, dataset scaling</li>
+                    <li>Benchmark Engineer &mdash; LeWM-Eval leaderboard</li>
+                </ul>
+                <h3 style="margin-top:16px;">Advisory Board (Target)</h3>
+                <ul>
+                    <li>HEVC contributor / MPEG VCM participant &mdash; standards</li>
+                    <li>Production ML engineer &mdash; deployment expertise</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 12</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 13  THE ASK                                                 -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">13 // THE ASK</div></div>
+    <h2>$3&ndash;5M seed. 18-month milestones.</h2>
+    <div class="content-wrap" style="justify-content:center;">
+        <div class="callout bold" style="margin-bottom:16px;">
+            <p>What we are building with this capital</p>
+        </div>
+        <div class="funds" style="margin-bottom:20px;">
+            <div class="funds-item">
+                <span class="pct c1">50%</span>
+                <span class="label">Team</span>
+                <span class="detail">Co-founder, ML engineer, benchmark engineer</span>
+            </div>
+            <div class="funds-item">
+                <span class="pct c2">30%</span>
+                <span class="label">Data &amp; Compute</span>
+                <span class="detail">Dataset licensing, training runs, leaderboard infrastructure</span>
+            </div>
+            <div class="funds-item">
+                <span class="pct c3">20%</span>
+                <span class="label">Operations</span>
+                <span class="detail">Legal (IP), travel (MPEG meetings), tooling</span>
+            </div>
+        </div>
+        <div class="g3" style="margin-top:0;">
+            <div class="card">
+                <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">CVPR 2027</div>
+                <p style="font-size:11px;">LeWM-VC v2 submitted</p>
+            </div>
+            <div class="card">
+                <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">15+ Codecs</div>
+                <p style="font-size:11px;">LeWM-Eval leaderboard, 3 independent institutions</p>
+            </div>
+            <div class="card">
+                <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">1 LOI</div>
+                <p style="font-size:11px;">Paying design partner or revenue-stage letter of intent</p>
+            </div>
+            <div class="card">
+                <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">NeurIPS D&amp;B</div>
+                <p style="font-size:11px;">LeWM-Eval benchmark paper submitted</p>
+            </div>
+            <div class="card">
+                <div style="font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px;">MPEG VCM</div>
+                <p style="font-size:11px;">Contribution submitted and acknowledged</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Slide 13</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- 14  CLOSING                                                 -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="slide">
+    <div class="slide-header"><div class="slide-number">14 // CLOSING</div></div>
+    <div class="content-wrap" style="justify-content:center;align-items:center;text-align:center;">
+        <p style="font-size:36px;font-weight:700;color:var(--accent);line-height:1.15;margin-bottom:20px;">
+            The surveillance industry is transitioning<br>to machine perception pipelines.
+        </p>
+        <p style="font-size:22px;color:var(--text-sub);margin-bottom:12px;">
+            We are building the <strong>compression infrastructure</strong><br>
+            and the <strong>evaluation standard</strong> that defines that transition.
+        </p>
+        <div style="margin-top:36px;">
+            <p style="font-size:16px;font-weight:600;color:var(--text-main);">Preetam Mukherjee</p>
+            <p style="font-size:12px;color:#94a3b8;">preetam@mahamaia.com</p>
+        </div>
+        <div class="banner" style="max-width:560px;margin:36px auto 0;">
+            <p>We are scheduling second meetings for the week of [date].<br>If this is interesting, let's put time on the calendar today.</p>
+        </div>
+    </div>
+    <div class="slide-footer"><span>MAHAMAIA Systems</span><span>Seed Deck &middot; 2026</span></div>
+</div>
+
+</body>
+</html>

@@ -7,7 +7,7 @@ import torch
 
 def test_rate_controller_initialization():
     """Test that RateController initializes correctly."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController(latent_dim=192, enable_mlp=True)
     assert controller.latent_dim == 192
@@ -16,7 +16,7 @@ def test_rate_controller_initialization():
 
 def test_rate_controller_crf_table():
     """Test CRF table values are present for all resolution tiers."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -34,7 +34,7 @@ def test_rate_controller_crf_table():
 
 def test_select_qp_returns_integer():
     """Test that select_qp returns integer QP values."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -45,7 +45,7 @@ def test_select_qp_returns_integer():
 
 def test_select_qp_different_tiers():
     """Test QP selection for different bitrate tiers."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -60,7 +60,7 @@ def test_select_qp_different_tiers():
 
 def test_select_qp_resolutions():
     """Test QP selection for different resolutions."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -75,7 +75,7 @@ def test_select_qp_resolutions():
 
 def test_estimate_complexity():
     """Test complexity estimation from latent."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController(enable_mlp=False)
 
@@ -88,7 +88,7 @@ def test_estimate_complexity():
 
 def test_estimate_complexity_with_mlp():
     """Test complexity estimation with MLP enabled."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController(enable_mlp=True)
 
@@ -101,7 +101,7 @@ def test_estimate_complexity_with_mlp():
 
 def test_predict_lambda():
     """Test lambda prediction for RD optimization."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController(enable_mlp=False)
 
@@ -112,7 +112,7 @@ def test_predict_lambda():
 
 def test_predict_lambda_with_mlp():
     """Test lambda prediction with MLP enabled."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController(enable_mlp=True)
 
@@ -123,7 +123,7 @@ def test_predict_lambda_with_mlp():
 
 def test_get_qp_for_bitrate_no_change():
     """Test QP remains unchanged when bitrate is within tolerance."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -138,7 +138,7 @@ def test_get_qp_for_bitrate_no_change():
 
 def test_get_qp_for_bitrate_increase():
     """Test QP increases when bitrate is too high."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -153,7 +153,7 @@ def test_get_qp_for_bitrate_increase():
 
 def test_get_qp_for_bitrate_decrease():
     """Test QP decreases when bitrate is too low."""
-    from lewm_vc.utils.rate_control import RateController
+    from src.lewm_vc.utils.rate_control import RateController
 
     controller = RateController()
 
@@ -168,7 +168,7 @@ def test_get_qp_for_bitrate_decrease():
 
 def test_crf_schedule_initialization():
     """Test CRFSchedule initializes correctly."""
-    from lewm_vc.utils.rate_control import CRFSchedule
+    from src.lewm_vc.utils.rate_control import CRFSchedule
 
     schedule = CRFSchedule(base_crf=28)
     assert schedule.base_crf == 28
@@ -178,7 +178,7 @@ def test_crf_schedule_initialization():
 
 def test_crf_schedule_compute():
     """Test CRF computation."""
-    from lewm_vc.utils.rate_control import CRFSchedule
+    from src.lewm_vc.utils.rate_control import CRFSchedule
 
     schedule = CRFSchedule(base_crf=28)
 
@@ -189,7 +189,7 @@ def test_crf_schedule_compute():
 
 def test_crf_schedule_scene_change():
     """Test CRF for scene change frames."""
-    from lewm_vc.utils.rate_control import CRFSchedule
+    from src.lewm_vc.utils.rate_control import CRFSchedule
 
     schedule = CRFSchedule(base_crf=28)
 
@@ -201,7 +201,7 @@ def test_crf_schedule_scene_change():
 
 def test_crf_schedule_reset():
     """Test CRF schedule reset."""
-    from lewm_vc.utils.rate_control import CRFSchedule
+    from src.lewm_vc.utils.rate_control import CRFSchedule
 
     schedule = CRFSchedule()
     schedule.compute_crf(complexity=0.5)
@@ -212,7 +212,7 @@ def test_crf_schedule_reset():
 
 def test_compute_bpp():
     """Test bits-per-pixel computation."""
-    from lewm_vc.utils.rate_control import compute_bpp
+    from src.lewm_vc.utils.rate_control import compute_bpp
 
     bpp = compute_bpp(latent_bits=10000, height=1080, width=1920)
     expected = 10000 / (1080 * 1920)
@@ -221,7 +221,7 @@ def test_compute_bpp():
 
 def test_estimate_frame_bits():
     """Test frame bit estimation."""
-    from lewm_vc.utils.rate_control import estimate_frame_bits
+    from src.lewm_vc.utils.rate_control import estimate_frame_bits
 
     bits = estimate_frame_bits(
         qp=28,

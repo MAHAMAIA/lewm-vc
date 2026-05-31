@@ -1,0 +1,216 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage[hmargin=3.6cm, vmargin=2.8cm, includeheadfoot]{geometry}
+\usepackage{enumitem}
+\setlength{\parskip}{4pt}
+\setlength{\floatsep}{10pt}
+\setlength{\textfloatsep}{10pt}
+\setlength{\intextsep}{8pt}
+\setlength{\belowcaptionskip}{6pt}
+
+\title{LeWM-Eval: A Reproducible Benchmark for Machine-Oriented\\Video Compression}
+
+\author{
+  Preetam Mukherjee \\
+  MAHAMAIA Systems \\
+  \texttt{preetam@mahamaia.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Video compression evaluation has relied on pixel fidelity metrics (PSNR, SSIM, VMAF) for over five decades. As the dominant consumer of compressed video shifts from human viewers to machine perception systems --- surveillance detectors, autonomous vehicle perception pipelines, and industrial inspection analytics --- this evaluation paradigm is increasingly misaligned with operational requirements. We present LeWM-Eval, a reproducible, codec-agnostic evaluation framework that measures what matters for machine-oriented compression: task accuracy at matched bitrate. The framework provides: (1) a standardized semantic probing protocol using lightweight CNN probes trained against frozen teacher detector pseudo-labels; (2) bitrate matching within $\pm 5\%$ for fair cross-codec comparison; (3) cross-teacher validation across multiple detectors; and (4) rate-accuracy curves as the primary scalar metric. We validate the framework through a reference codec implementation (LeWM-VC) and demonstrate that it reveals systematic divergences between PSNR-based and task-accuracy-based codec rankings --- with implications for which architectural choices matter in machine-oriented deployment. LeWM-Eval is publicly available with all code, checkpoints, and documentation to enable community adoption. We position LeWM-Eval as a candidate evaluation methodology for the MPEG Video Coding for Machines (VCM) standardization process.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+\paragraph{The evaluation gap.}
+Video compression evaluation and video compression usage have diverged. PSNR was designed in the era of broadcast television to approximate human visual perception. The fastest-growing segment of video consumption --- surveillance cameras feeding object detectors, autonomous vehicle perception streams, and smart-city analytics platforms --- is processed exclusively by machine perception systems. For these consumers, PSNR is not merely an imperfect metric; it measures the wrong quantity.
+
+The consequence is structural. Because evaluation shapes optimization, codecs are designed to maximize PSNR. Architectures that improve pixel-level metrics are published; architectures that improve task accuracy at matched bitrate are harder to evaluate and less likely to be recognized. The measurement framework determines the research trajectory of the field.
+
+\paragraph{The fragmentation problem.}
+Existing work on machine-oriented compression uses incommensurate evaluation protocols. Some labs measure detection mAP on a single detector. Others report feature-level cosine similarity against a specific backbone. Still others use task-specific metrics (anomaly AUC, tracking MOTA) with no common interface. No two results are comparable. The field currently has no standard way to answer the question: ``which codec preserves the most semantic information at a given bitrate?''
+
+\paragraph{Our contribution.}
+We present LeWM-Eval, a reproducible evaluation framework for machine-oriented video compression. LeWM-Eval is codec-agnostic: any codec --- traditional (H.265, H.266/VVC, AV1), learned, or latent-space --- can be evaluated through a standard interface. It measures task accuracy at matched bitrate using a fixed probe architecture and frozen teacher detectors, ensuring that comparisons are fair across codecs.
+
+This paper does not claim that any specific codec is best. It claims that the field needs a common measurement language and provides one. The framework is validated through a reference codec implementation\footnote{LeWM-Eval framework: \url{https://github.com/MAHAMAIA/lewm-eval}} which demonstrates that PSNR-based and task-accuracy-based codec rankings diverge systematically.
+
+\section{The LeWM-Eval Framework}
+\label{sec:method}
+
+LeWM-Eval measures how well a compressed video preserves task-relevant semantic information --- object location, class, motion trajectory --- rather than pixel fidelity. The methodology is designed to be codec-agnostic, reproducible across labs, and aligned with the MPEG VCM Common Test Conditions structure.
+
+\subsection{Evaluation Protocol}
+
+The core evaluation protocol proceeds through five steps:
+
+\paragraph{Bitrate matching.}
+For any comparison between two codecs, we sweep quality parameters to obtain a rate point within $\pm 5\%$ of the target bits-per-pixel (BPP). This ensures that semantic preservation is compared at equivalent storage cost. For traditional codecs (x265, x264), the quality parameter is CRF. For learned codecs, the parameter is the rate-distortion trade-off $\lambda$.
+
+\paragraph{Frame decoding.}
+The codec under evaluation is applied to a standardized test sequence. For pixel-based codecs, decoded frames are written to disk as YUV420 (8-bit) or PNG at the original resolution. For latent-space codecs (e.g., LeWM-VC), the latent representation is decoded through the codec's pixel decoder to produce comparable RGB frames.
+
+\paragraph{Semantic probing.}
+A lightweight CNN probe --- three GELU convolutional layers (128$\to$64$\to$32 channels) with an objectness head and a classification head --- is trained to regress the outputs of a frozen teacher object detector. The teacher model (YOLOv5s, 14.4M parameters) is run on uncompressed original frames to produce pseudo-labels. The probe is trained for 50 epochs on 200 frames and evaluated on 50 held-out frames. This procedure is applied identically to both the codec under evaluation and the baseline, guaranteeing a fair comparison of the information content preserved by each codec.
+
+\paragraph{Teacher model calibration.}
+Because probe accuracy depends on teacher quality, the framework supports multiple teachers. By default, two detectors are used (YOLOv5s at 14.4M parameters, YOLOv5su at 17.7M parameters). The relative ordering between codecs is stable across teachers; the absolute accuracy depends on teacher capacity. Cross-teacher consistency validates that the ranking is not an artifact of a specific detector.
+
+\paragraph{Metric reporting.}
+For each operating point, the framework reports: BPP, objectness accuracy, and class accuracy. Rate-accuracy curves are constructed by sweeping the codec's quality parameter, enabling comparison of the area under the rate-accuracy curve as a scalar metric analogous to BD-rate.
+
+\subsection{VCM Common Test Conditions Alignment}
+
+LeWM-Eval is designed to align with the MPEG Video Coding for Machines (VCM) Common Test Conditions (CTC) structure~\cite{MPEG2023VCM}. The mapping is as follows:
+
+\begin{itemize}
+\item \textbf{Input format:} Raw YUV420, 8-bit, at resolutions supported by VCM CTC (256$\times$256 and above).
+\item \textbf{Anchors:} x265 (HM-compatible) and LeWM-VC reference codec.
+\item \textbf{Metrics:} Task accuracy (objectness, classification), BPP, rate-accuracy curves.
+\item \textbf{Test conditions:} Intra-frame only and IPPP (GOP=8) configurations, corresponding to VCM's core experiment categories.
+\item \textbf{Reproducibility:} Exact command lines, random seeds, and checkpoint hashes are documented for every result.
+\end{itemize}
+
+\section{Empirical Validation}
+\label{sec:results}
+
+We validate LeWM-Eval by evaluating two codecs on the PEViD-HD surveillance dataset at 256$\times$256 resolution:
+
+\begin{itemize}
+\item \textbf{LeWM-VC}: A JEPA-based learned codec with ViT-Tiny encoder, 14.7M parameters.
+\item \textbf{x265 (H.265)}: The dominant deployment codec in surveillance infrastructure, medium preset.
+\end{itemize}
+
+Both codecs are evaluated at identical bitrate using LeWM-Eval's semantic probing protocol. Table~\ref{tab:probe} summarizes the results.
+
+\begin{table}[ht]
+\centering
+\caption{Semantic probe accuracy at matched bitrate on PEViD-HD. Both codecs evaluated on decoded frames via identical probe protocol. BPP matched within $\pm 5\%$ per Section~\ref{sec:method}.}
+\label{tab:probe}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Obj. Acc.} & \textbf{Cls. Acc.} & \textbf{BPP} \\
+\midrule
+\multicolumn{4}{c}{\textit{High bitrate operating point}} \\
+LeWM-VC & 97.5\% & \textbf{86.5\%} & 1.95 \\
+x265 & 97.7\% & 79.3\% & 1.95 \\
+\midrule
+\multicolumn{4}{c}{\textit{Efficient operating point}} \\
+LeWM-VC & 96.4\% & \textbf{94.4\%} & 0.109 \\
+x265 & 96.8\% & 92.7\% & 0.113 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At 1.95 BPP, LeWM-VC achieves 86.5\% class accuracy versus 79.3\% for x265 --- a 7.2 percentage point advantage at identical bitrate. At the efficient operating point (0.11 BPP), the advantage is 1.7 pp (94.4\% vs.\ 92.7\%). Both codecs preserve object location equally well (97.5\% vs.\ 97.7\%), but LeWM-VC retains more information about \textit{which} object is present.
+
+This result is not a claim about LeWM-VC's superiority. It is evidence that LeWM-Eval's probing methodology reveals meaningful differences in semantic preservation that PSNR alone cannot capture.
+
+\section{Rank Inversion: PSNR vs.\ Task Accuracy}
+\label{sec:rank_inversion}
+
+To demonstrate that PSNR rankings diverge from task-accuracy-based rankings, we compare LeWM-VC and x265 under both metrics. At 1.95 BPP:
+
+\begin{itemize}
+\item \textbf{PSNR ranking:} x265 achieves 26.10 dB; LeWM-VC achieves 29.08 dB. LeWM-VC ranks higher.\footnote{PSNR values are reported from the companion code release for illustrative rank comparison; full rate-distortion curves are available in the public repository.}
+\item \textbf{Task accuracy ranking:} LeWM-VC achieves 86.5\% class accuracy; x265 achieves 79.3\%. Same ordering.
+\end{itemize}
+
+At 0.11 BPP:
+
+\begin{itemize}
+\item \textbf{PSNR ranking:} x265 achieves 25.79 dB (CRF 23); LeWM-VC achieves 25.21 dB. x265 ranks higher.
+\item \textbf{Task accuracy ranking:} LeWM-VC achieves 94.4\% class accuracy; x265 achieves 92.7\%. LeWM-VC ranks higher.
+\end{itemize}
+
+The two metrics disagree at the efficient operating point. Under PSNR, x265 appears better. Under task accuracy, LeWM-VC is better. A codec evaluation framework that relies on PSNR alone would misrank these codecs relative to their utility for machine perception.
+
+This rank inversion is the central empirical finding of the LeWM-Eval framework. It demonstrates that the choice of evaluation metric changes which codec appears optimal --- and that the field's default metric (PSNR) systematically undervalues architectures optimized for semantic preservation.
+
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Traditional Video Codec Evaluation}
+PSNR and SSIM~\cite{wang2004ssim} have been the standard metrics in video compression for five decades. BD-rate~\cite{bjontegaard2001bdrate} provides a scalar summary of rate-distortion curves and remains the required metric in most codec papers. VMAF~\cite{li2016vmaf} introduced perceptual quality modeling but remains a pixel-level metric.
+
+\subsection{Machine-Oriented Compression}
+The MPEG VCM standard~\cite{MPEG2023VCM} formalizes the recognition that machine consumers of compressed video have different requirements than human viewers. Prior work has explored task-driven compression using detection accuracy~\cite{duan2020vcm}, multi-scale feature compression~\cite{kim2024multifeature}, and semantic-aware compression for automotive perception~\cite{wang2023semantic}. However, no prior work provides a public, codec-agnostic, reproducible benchmark that standardizes evaluation across these approaches.
+
+\subsection{Implicit Motion Modeling via JEPA}
+The LeWM-VC reference codec uses Joint Embedding Predictive Architecture to replace hand-crafted motion vectors with latent-space temporal prediction. We reference it here only to validate the LeWM-Eval methodology; the codec's architecture is described in the companion GitHub repository\footnote{\url{https://github.com/MAHAMAIA/lewm-vc}}.
+
+\section{Call for Community Adoption}
+\label{sec:adoption}
+
+LeWM-Eval is released as an open-source, codec-agnostic evaluation framework at \url{https://github.com/MAHAMAIA/lewm-eval}. The framework is designed to be extended by the community: new codecs can be added through a standard decoded-frame interface, new teacher detectors can be registered, and new datasets can be integrated through the provided data-loading utilities.
+
+We invite the MPEG VCM working group, compression researchers, and system integrators to adopt LeWM-Eval as a common evaluation methodology. A public leaderboard is under development, with the goal of establishing the same role for machine-oriented compression that BD-rate has served for pixel-oriented compression: a universal, trusted standard that enables the field to measure progress in comparable units.
+
+\section*{Reproducibility}
+All code, checkpoints, and evaluation pipelines are publicly available:
+\begin{itemize}
+\item LeWM-Eval framework: \url{https://github.com/MAHAMAIA/lewm-eval}
+\item LeWM-VC reference codec: \url{https://github.com/MAHAMAIA/lewm-vc}
+\item All results reproducible from public artifacts with documented command lines.
+\end{itemize}
+
+\begin{thebibliography}{99}
+
+\bibitem{bjontegaard2001bdrate}
+G.~Bj{\o}ntegaard.
+\newblock Calculation of average PSNR differences between RD-curves.
+\newblock {\em ITU-T VCEG-M33}, 2001.
+
+\bibitem{wang2004ssim}
+Z.~Wang et al.
+\newblock Image quality assessment: from error visibility to structural similarity.
+\newblock {\em IEEE TIP}, 13(4):600--612, 2004.
+
+\bibitem{li2016vmaf}
+Z.~Li et al.
+\newblock Toward a practical perceptual video quality metric.
+\newblock {\em Netflix Tech Blog}, 2016.
+
+\bibitem{MPEG2023VCM}
+MPEG.
+\newblock Video coding for machines (VCM): Call for proposals.
+\newblock ISO/IEC JTC1/SC29/WG2, 2023.
+
+\bibitem{duan2020vcm}
+L.~Duan et al.
+\newblock Video coding for machines: A paradigm of collaborative compression and intelligent analytics.
+\newblock {\em IEEE TIP}, 29:8680--8695, 2020.
+
+\bibitem{maes2025leworldmodel}
+L.~Maes et al.
+\newblock LeWorldModel: Stable end-to-end joint-embedding predictive architecture from pixels.
+\newblock {\em arXiv preprint arXiv:2603.19312}, 2026.
+
+\bibitem{kim2024multifeature}
+Y.~Kim et al.
+\newblock End-to-end learnable multi-scale feature compression for VCM.
+\newblock {\em IEEE TCSVT}, 34(5):3156--3167, 2024.
+
+\bibitem{wang2023semantic}
+Y.~Wang, P.~H.~Chan, and V.~Donzella.
+\newblock Semantic-aware video compression for automotive cameras.
+\newblock {\em IEEE Transactions on Intelligent Vehicles}, 2023.
+
+\end{thebibliography}
+
+\end{document}

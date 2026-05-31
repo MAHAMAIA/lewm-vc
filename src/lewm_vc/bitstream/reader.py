@@ -13,6 +13,7 @@ import torch
 
 class NALUnitType(IntEnum):
     """NAL unit types for LeWM-VC bitstream."""
+
     SPS = 0
     PPS = 1
     APS = 2
@@ -20,6 +21,11 @@ class NALUnitType(IntEnum):
     P_RESIDUAL = 4
     SEI = 5
     EOS = 6
+    # SVC layer types
+    BL_I = 7
+    BL_P = 8
+    EL_I = 9
+    EL_P = 10
 
 
 class BitstreamReader:
@@ -37,10 +43,7 @@ class BitstreamReader:
         self.version = version
         self.position: int = 0
 
-    def read_frame(
-        self,
-        stream: bytes
-    ) -> dict:
+    def read_frame(self, stream: bytes) -> dict:
         """
         Read a single frame from bitstream.
 
@@ -170,6 +173,44 @@ class BitstreamReader:
         nal_type, _ = self._parse_nal(stream)
         return nal_type == NALUnitType.EOS
 
+    def read_svc_frame(
+        self,
+        bl_stream: bytes,
+        el_stream: bytes | None = None,
+    ) -> dict:
+        """
+        Read an SVC frame from separate BL and EL streams.
+
+        Args:
+            bl_stream: BL NAL unit bytes (from cloud stream)
+            el_stream: EL NAL unit bytes (from edge storage), or None
+
+        Returns:
+            Dictionary with:
+                - nal_type: BL NAL type
+                - bl: Decoded base layer tensor
+                - el: Decoded enhancement layer tensor (or None)
+                - is_svc_bl: True
+                - is_svc_el: True if EL was present
+        """
+        bl_type, bl_payload = self._parse_nal(bl_stream)
+        bl = self._deserialize_latent(bl_payload)
+
+        el = None
+        has_el = False
+        if el_stream is not None:
+            el_type, el_payload = self._parse_nal(el_stream)
+            el = self._deserialize_latent(el_payload)
+            has_el = True
+
+        return {
+            "nal_type": bl_type,
+            "bl": bl,
+            "el": el,
+            "is_svc_bl": True,
+            "is_svc_el": has_el,
+        }
+
     def _parse_nal(self, stream: bytes) -> tuple[NALUnitType, bytes]:
         """
         Parse NAL unit header and extract payload.
@@ -225,10 +266,7 @@ class BitstreamReader:
         return self._arithmetic_decode_stub(payload)
 
     def _arithmetic_decode_stub(
-        self,
-        data_bytes: bytes,
-        shape: tuple = (1, 192, 16, 16),
-        num_bins: int = 256
+        self, data_bytes: bytes, shape: tuple = (1, 192, 16, 16), num_bins: int = 256
     ) -> torch.Tensor:
         """
         Arithmetic decoding stub implementation.
@@ -258,14 +296,12 @@ class BitstreamReader:
                 data_denormalized,
                 (0, total_elements - len(data_denormalized)),
                 mode="constant",
-                constant_values=0
+                constant_values=0,
             )
         else:
             data_denormalized = data_denormalized[:total_elements]
 
-        data_tensor = torch.from_numpy(
-            data_denormalized.reshape(shape)
-        ).float()
+        data_tensor = torch.from_numpy(data_denormalized.reshape(shape)).float()
 
         return data_tensor
 

@@ -47,11 +47,29 @@ def _load_config(config_path: str) -> dict:
 
 
 def _discover_frames(root: str, max_frames: int | None = None) -> list[Path]:
+    """Discover frames from a single clip directory.
+
+    For temporal evaluation, frames must come from a single clip to maintain
+    predictor context across consecutive frames. R-globbing across multiple
+    clips would interleave frames, breaking temporal prediction.
+
+    If root contains subdirectories (multi-clip archive), use only the first
+    clip to ensure valid temporal context.
+    """
     root_p = Path(root)
-    all_frames = sorted(root_p.rglob("*.png"))
-    if max_frames:
-        step = max(1, len(all_frames) // max_frames)
-        all_frames = all_frames[::step]
+    # Check if this is a multi-clip root
+    clip_dirs = sorted([d for d in root_p.iterdir() if d.is_dir()])
+    if clip_dirs:
+        # Use only the first clip for temporal evaluation
+        first_clip = clip_dirs[0]
+        all_frames = sorted(first_clip.rglob("*.png"))
+        if not all_frames:
+            print(f"  [warning] no frames in {first_clip}")
+            return []
+    else:
+        all_frames = sorted(root_p.rglob("*.png"))
+    if max_frames and max_frames < len(all_frames):
+        all_frames = all_frames[:max_frames]
     return all_frames
 
 
@@ -79,6 +97,7 @@ def evaluate(
     num_frames: int | None,
     device: str,
     temporal: bool = False,
+    save_report: bool = False,
 ):
     config = _load_config(config_path)
     model_cfg = config.get("model", {})
@@ -255,6 +274,59 @@ def evaluate(
         )
     )
 
+    # Structured evaluation report (optional, enabled with --report)
+    if save_report:
+        temporal_gain = 0.0
+        if i_bpp > 0 and p_bpp > 0:
+            temporal_gain = (1.0 - p_bpp / i_bpp) * 100.0
+        report = {
+            "run_id": Path(checkpoint_path).parent.parent.name,
+            "checkpoint": str(Path(checkpoint_path).resolve()),
+            "date": str(Path(out, "..", "..", "..")),
+            "dataset": str(data_root),
+            "metrics": {
+                "psnr": round(avg_psnr_val, 2),
+                "psnr_i": round(
+                    sum(r["psnr"] for r in results if r["type"] == "I")
+                    / max(1, sum(1 for r in results if r["type"] == "I")),
+                    2,
+                )
+                if temporal
+                else avg_psnr_val,
+                "psnr_p": round(
+                    sum(r["psnr"] for r in results if r["type"] == "P")
+                    / max(1, sum(1 for r in results if r["type"] == "P")),
+                    2,
+                )
+                if temporal
+                else avg_psnr_val,
+                "ms_ssim": round(avg_ssim, 4),
+                "lpips": round(avg_lpips, 4),
+                "bpp": round(avg_bpp, 6),
+                "i_frame_bpp": round(i_bpp, 6),
+                "p_frame_bpp": round(p_bpp, 6),
+                "p_i_ratio": round(p_bpp / i_bpp, 3) if i_bpp > 0 else 0,
+                "temporal_gain_pct": round(temporal_gain, 1),
+                "task_loss": round(avg_task, 6),
+            },
+            "model": {
+                "mode": "temporal IPPP" if temporal else "intra-only",
+                "num_frames": count,
+                "image_size": image_size,
+            },
+            "client_summary": {
+                "bandwidth_reduction_vs_x265": "TBD (requires x265 comparison)",
+                "average_bitrate_kbps": round(avg_bpp * 30 * image_size * image_size / 1000, 2)
+                if avg_bpp > 0
+                else 0,
+                "temporal_coding_gain": f"{temporal_gain:.1f}% P-frame savings"
+                if temporal_gain > 0
+                else "N/A",
+            },
+        }
+        (out / "evaluation_report.json").write_text(json.dumps(report, indent=2))
+        print(f"  Report: {out / 'evaluation_report.json'}")
+
     # HTML report
     table_rows = ""
     for r in results:
@@ -345,8 +417,7 @@ def _evaluate_intra(
         recon = decoder(quant_latent)
 
         rate, _ = entropy_model(quant_latent)
-        bpp = rate.item() / (tensor.shape[2] * tensor.shape[3])
-        mse_val = F.mse_loss(recon, tensor).item()
+        bpp = rate.sum().item() / (tensor.shape[2] * tensor.shape[3])
         ssim_val = ms_ssim(recon.squeeze(0), tensor.squeeze(0))
         lpips_val = lpips_fn(recon, tensor).item() if lpips_fn else 0.0
         task_val = F.mse_loss(task_probe(recon), task_probe(tensor)).item()
@@ -396,14 +467,12 @@ def _evaluate_temporal(
         latent, _ = encoder(tensor, return_surprise=True)
 
         if i == 0:
-            # I-frame: quantize raw latent, decode, store as context
             quant_latent = quantizer(latent)
             recon = decoder(quant_latent)
             rate, _ = entropy_model(quant_latent)
             frame_type = "I"
             recon_latents.append(quant_latent)
         else:
-            # P-frame: predict from decoded latents, code residual, reconstruct
             ctx = recon_latents[max(0, len(recon_latents) - context_len) :]
             pred_mean, _ = predictor(ctx)
             residual = latent - pred_mean
@@ -414,7 +483,7 @@ def _evaluate_temporal(
             frame_type = "P"
             recon_latents.append(recon_latent)
 
-        bpp = rate.item() / (tensor.shape[2] * tensor.shape[3])
+        bpp = rate.sum().item() / (tensor.shape[2] * tensor.shape[3])
         mse_val = F.mse_loss(recon, tensor).item()
         ssim_val = ms_ssim(recon.squeeze(0), tensor.squeeze(0))
         lpips_val = lpips_fn(recon, tensor).item() if lpips_fn else 0.0
@@ -465,6 +534,9 @@ def main():
     parser.add_argument(
         "--temporal", action="store_true", help="Use IPPP temporal coding with predictor"
     )
+    parser.add_argument(
+        "--report", action="store_true", help="Export structured evaluation report JSON"
+    )
     args = parser.parse_args()
     evaluate(
         args.checkpoint,
@@ -475,6 +547,7 @@ def main():
         args.num_frames,
         args.device,
         temporal=args.temporal,
+        save_report=args.report,
     )
 
 

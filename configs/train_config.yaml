@@ -81,64 +81,53 @@ training:
 # ---------------------------------------------------------------------------
 phases:
   # Phase 0: JEPA warmup — train encoder + predictor + decoder
-  #   Loss: L = R + lambda*D + 2.0*L_JEPA + 0.001*SIGReg
-  #   Decoder warms up alongside encoder/predictor to prevent NaN at Phase 1 transition
+  #   Loss: L = R + lambda*D + 3e-5*L_JEPA + 0.001*SIGReg
+  #   Uses CLI --lambda value (not hardcoded) so encoder learns quality-aware latents from step 1
+  #   Decoder warms up alongside encoder/predictor
   #   Entropy stays frozen — its rate gradient spikes if unlocked too early
   #   Freezes: entropy_model, rate_controller, quantizer
   phase0:
-    steps: 50000
+    steps: 30000
+    lambda: 0.0
     gamma: 2.0
     delta: 0.001
-    lambda: 1.0
+    rate_weight: 0.0
     freeze: ["entropy_model", "rate_controller", "quantizer"]
     mse_weight: 1.0
     lpips_weight: 0.0
 
-  # Phase 1: Joint RD — full pipeline, single lambda
-  #   Loss: L = R + lambda*D + 1.0*L_JEPA + 0.0005*SIGReg
-  #   entropy_warmup_steps: first N steps freeze predictor+decoder+encoder
-  #   (entropy model trains on stationary residuals before full fine-tuning)
-  #   Encoder always frozen (rate gradient through STE destabilizes it)
+  # Phase 1: Entropy warmup — entropy model on stationary residuals
   phase1:
-    steps: 25000
-    entropy_warmup_steps: 25000
-    gamma: 1.0
+    steps: 10000
+    entropy_warmup_steps: 10000
+    gamma: 0.00003
     delta: 0.0005
     freeze: ["encoder"]
     mse_weight: 0.7
     lpips_weight: 0.3
 
-  # Phase 2: Quantization-Aware Training
-  #   Hard rounding kicks in → rate gradient blocked at quantizer
-  #   Predictor frozen to prevent residual distribution shift (would spike entropy model)
-  #   Decoder + entropy model fine-tune with hard quantization
-  #   15k steps is enough — decoder converges fast, entropy already converged
+  # Phase 2: QAT — decoder + entropy fine-tune with hard quantization
   phase2:
-    steps: 15000
-    gamma: 1.0
+    steps: 10000
+    gamma: 0.00003
     delta: 0.0005
     freeze: ["encoder", "predictor"]
     mse_weight: 0.7
     lpips_weight: 0.3
 
-  # Phase 3: Decoder refinement — adapt decoder to QAT-hardened latents
-  #   Only decoder trains (high LPIPS weight for perceptual quality)
-  #   Encoder + predictor frozen to keep residuals stable
-  #   Entropy model frozen to keep rate estimate stable
+  # Phase 3: Decoder refine — decoder-only polish
   phase3:
-    steps: 15000
-    gamma: 0.5
+    steps: 5000
+    gamma: 0.00001
     delta: 0.0001
     freeze: ["encoder", "predictor", "entropy_model"]
     mse_weight: 0.5
     lpips_weight: 0.5
 
   # Phase 4: Cooldown — final low-LR polish
-  #   Predictor stays frozen to prevent residual shift
-  #   Decoder + entropy model get final refinement at near-zero LR
   phase4:
-    steps: 20000
-    gamma: 0.5
+    steps: 5000
+    gamma: 0.00001
     delta: 0.0001
     freeze: ["encoder", "predictor"]
     mse_weight: 0.5

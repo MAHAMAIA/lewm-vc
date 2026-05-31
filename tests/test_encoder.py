@@ -34,7 +34,8 @@ class TestLeWMEncoder:
         """Test that encoder initializes with correct architecture."""
         assert encoder.patch_embed is not None
         assert encoder.cls_token is not None
-        assert encoder.pos_embed is not None
+        assert encoder.pos_embed_grid is not None
+        assert encoder.pos_embed_cls is not None
         assert len(encoder.encoder_layers) == 6
         assert encoder.norm is not None
         assert encoder.latent_proj is not None
@@ -155,7 +156,9 @@ class TestLeWMEncoder:
 
     def test_pos_embed_shape(self, encoder):
         """Test that positional embeddings have correct shape."""
-        assert encoder.pos_embed.shape[1] == 1
+        assert encoder.pos_embed_grid.shape[2] == 32  # 512 // 16
+        assert encoder.pos_embed_grid.shape[3] == 32
+        assert encoder.pos_embed_cls.shape[1] == 1
 
     def test_transformer_layers_count(self, encoder):
         """Test that correct number of transformer layers are created."""
@@ -212,8 +215,8 @@ class TestTransformerEncoderLayer:
 
     def test_pre_norm_architecture(self, layer):
         """Test that pre-norm is used."""
-        assert hasattr(layer, 'norm1')
-        assert hasattr(layer, 'norm2')
+        assert hasattr(layer, "norm1")
+        assert hasattr(layer, "norm2")
 
     def test_gradient_flow(self, layer):
         """Test gradient flow through layer."""

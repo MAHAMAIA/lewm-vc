@@ -32,7 +32,7 @@ class HyperpriorEntropy(nn.Module):
         context: Dict containing μ, σ parameters for decoding
     """
 
-    def __init__(self, latent_dim: int = 192, hyper_channels: int = 320, num_components: int = 1):
+    def __init__(self, latent_dim: int = 192, hyper_channels: int = 256, num_components: int = 2):
         super().__init__()
         self.latent_dim = latent_dim
         self.hyper_channels = hyper_channels
@@ -40,22 +40,23 @@ class HyperpriorEntropy(nn.Module):
 
         self.hyperprior_cnn = nn.Sequential(
             nn.Conv2d(latent_dim, hyper_channels, 3, 1, 1),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.Conv2d(hyper_channels, hyper_channels, 3, 1, 1),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.Conv2d(hyper_channels, hyper_channels, 3, 1, 1),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.Conv2d(hyper_channels, hyper_channels, 3, 1, 1),
-            nn.ReLU(inplace=True),
+            nn.GELU(),
             nn.Conv2d(hyper_channels, latent_dim * 2, 3, 1, 1),
         )
 
         self.entropy_bottleneck = None
 
-        # Zero-init the final layer so mu≈0, log_sigma≈0 at startup
-        # Prevents KL explosion when the entropy model unlocks
-        nn.init.zeros_(self.hyperprior_cnn[-1].weight)
-        nn.init.zeros_(self.hyperprior_cnn[-1].bias)
+        # Zero-init the SIGMA channels only (last latent_dim channels).
+        # Mu channels retain kaiming init so gradient flows through KL.
+        # If both are zero-initted, d(KL)/d(mu) = mu = 0 → gradient vanishes.
+        nn.init.zeros_(self.hyperprior_cnn[-1].weight[latent_dim:])
+        nn.init.zeros_(self.hyperprior_cnn[-1].bias[latent_dim:])
 
     def forward(self, residual: torch.Tensor) -> tuple[torch.Tensor, dict]:
         """

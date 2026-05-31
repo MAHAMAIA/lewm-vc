@@ -1,5 +1,7 @@
 # LeWM-VC Training Run V1 — sentinel-p1-l0.05-be7de7 → sentinel-p2-l0.05-c8ce00
 
+> **Note:** This document describes a **failed** run. The follow‑up run `sentinel-p1-l60.0-85e9d5` (June 2026) has fixed the loss imbalance and shows healthy training (loss ~130-200 vs 4.29M, balanced R+λD+γJ). See latest training run summaries for current status.
+
 ## Overview
 
 First complete end-to-end training on 319 VIRAT clips (903,919 frames). Two sequential runs:

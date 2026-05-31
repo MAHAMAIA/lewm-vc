@@ -177,6 +177,7 @@ class LeWMTrainer:
         gamma = phase_cfg.get("gamma", 1.0)
         delta = phase_cfg.get("delta", 0.01)
         lambda_val = phase_cfg.get("lambda", self.lambda_val)
+        rate_weight = phase_cfg.get("rate_weight", 1.0)
 
         b, num_frames = frames.shape[:2]
 
@@ -244,7 +245,7 @@ class LeWMTrainer:
             surprise_loss = 0.01 * torch.stack([s.mean() for s in surprises]).mean()
 
         total_loss = (
-            rate_loss
+            rate_weight * rate_loss
             + lambda_val * distortion_loss
             + gamma * jepa_loss
             + delta * sigreg_loss
@@ -389,15 +390,20 @@ class LeWMTrainer:
                 except Exception as e:
                     print(f"  [warning] failed to load {name}: {e}")
 
-        # Zero-init entropy model's final layer (checkpoint overwrites it with random weights)
-        nn.init.zeros_(self.entropy_model.hyperprior_cnn[-1].weight)
-        nn.init.zeros_(self.entropy_model.hyperprior_cnn[-1].bias)
+        # Re-randomize entropy model mu channels (checkpoint may have zero mu from old bug)
+        final_conv = self.entropy_model.hyperprior_cnn[-1]
+        D = self.entropy_model.latent_dim
+        nn.init.kaiming_uniform_(final_conv.weight[:D], a=0, mode="fan_in", nonlinearity="linear")
+        nn.init.zeros_(final_conv.weight[D:])
+        nn.init.zeros_(final_conv.bias[:D])
+        nn.init.zeros_(final_conv.bias[D:])
 
         self.current_phase = ckpt.get("phase", 0)
         self._setup_phase(self.current_phase)
         self.global_step = ckpt.get("global_step", 0)
         self.phase_step = ckpt.get("phase_step", 0)
-        self.lambda_val = ckpt.get("lambda_val", self.lambda_val)
+        # Keep the CLI-provided lambda_val — don't overwrite with checkpoint value
+        # because the old checkpoint may have had a different (wrong) λ
 
         # Get optimizer state if available
         self._resume_optimizer = ckpt.get("optimizer")

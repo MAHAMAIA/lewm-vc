@@ -1,5 +1,7 @@
 # LeWM-VC Training Run Summary — sentinel-p2-l0.05-5d285a
 
+> **Note:** This run had PSNR 11.7 dB due to loss imbalance (γJ >> λD). The follow‑up run `sentinel-p1-l60.0-85e9d5` (June 2026) fixes this with λ=60, γ=3e-5 — loss is now ~130-200 and all loss components are within 2× of each other.
+
 ## What Ran
 
 All 4 phases completed on 319 VIRAT training clips (903,919 frames), 68 validation clips.

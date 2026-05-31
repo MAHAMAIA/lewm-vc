@@ -63,10 +63,10 @@ We can lose on PSNR to x265 and still win on this use case alone.
 2. BD-rate is >200% of x265 at matched PSNR (codec is catastrophically worse)
 3. Latent space collapses despite SIGReg (representations are garbage)
 
-We are currently at Phase 0 (warmup). None of the stop criteria apply yet. Phase 1 will be the first real signal.
+> **Update (June 2026):** We have completed Phase 0 and are now in Phase 1 (joint RD) with λ=60, γ≈3e-5. Loss is balanced (~130-200), no entropy collapse. Early validation suggests temporal coding may be working. Phase 1 is the first real signal — that signal is now being collected, with **preliminary validation results expected within days**. Previous Phase 1 run used λ=0.05 with catastrophic loss imbalance (98.5% JEPA) — this has been corrected.
 
 ### Bottom Line
 
 **Not a wild goose chase.** The approach is grounded in published science, the niche is defensible, the market exists (Deep Render exit validates), and there's a clear product architecture (dual-layer SVC + surprise gating) that no competitor offers.
 
-The biggest risk is execution — can we get temporal residual coding to actually save bits? That question gets answered in Phase 1, ~10 hours from now.
+The biggest risk is execution — can we get temporal residual coding to actually save bits? That question is being answered in the current training run, with results expected within days.

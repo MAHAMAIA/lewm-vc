@@ -20,12 +20,20 @@ import torch.nn as nn
 
 from .encoder import LeWMEncoder
 from .predictor import LeWMPredictor
-from .working_decoder import SimpleWorkingDecoder
+from .svc import (
+    LatentSplitter,
+    MultiRateQuantizer,
+)
+from .svc import (
+    SVCEncoder as SVCEncoderController,
+)
+from .working_decoder import LeWMDecoder, SimpleWorkingDecoder
 
 
 @dataclass
 class EncodedFrame:
     """Result of encoding a single frame."""
+
     frame_num: int
     frame_type: Literal["I", "P"]
     latent: torch.Tensor
@@ -39,6 +47,7 @@ class EncodedFrame:
 @dataclass
 class EncodingStats:
     """Statistics for an encoded video."""
+
     total_frames: int
     i_frames: int
     p_frames: int
@@ -53,6 +62,39 @@ class EncodingStats:
     anomaly_bits: int
 
 
+@dataclass
+class SVCEncodedFrame:
+    """Result of encoding a single frame with SVC layers."""
+
+    frame_num: int
+    frame_type: Literal["I", "P"]
+    bl: torch.Tensor  # Base layer — send to cloud
+    el: torch.Tensor | None  # Enhancement layer — store on edge
+    bl_quantized: torch.Tensor
+    el_quantized: torch.Tensor | None
+    surprise: float
+    bl_bits: int
+    el_bits: int
+    encoding_time_ms: float
+
+
+@dataclass
+class SVCEncodingStats:
+    """Statistics for SVC-encoded video."""
+
+    total_frames: int
+    i_frames: int
+    p_frames: int
+    total_bl_bits: int
+    total_el_bits: int
+    total_bits: int
+    encoding_time_s: float
+    avg_bl_bpp: float
+    avg_el_bpp: float
+    avg_surprise: float
+    el_trigger_rate: float  # fraction of frames where EL was fetched
+
+
 class VectorQuantizer(nn.Module):
     """Simple vector quantizer for latent compression."""
 
@@ -63,7 +105,7 @@ class VectorQuantizer(nn.Module):
 
         codebook = torch.randn(codebook_size, latent_dim)
         codebook = codebook / codebook.norm(dim=-1, keepdim=True)
-        self.register_buffer('codebook', codebook)
+        self.register_buffer("codebook", codebook)
 
     def forward(self, latent: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
@@ -140,7 +182,7 @@ class EntropyCoder:
 
         result = bytearray([data[0]])
         for i in range(1, len(data)):
-            delta = (data[i] - data[i-1]) & 0xFF
+            delta = (data[i] - data[i - 1]) & 0xFF
             result.append(delta)
 
         return bytes(result)
@@ -362,7 +404,6 @@ class LeWMVideoCodec:
         checkpoint_path: str = None,
         use_trained: bool = True,
     ):
-        from .working_decoder import LeWMDecoder
 
         self.encoder = LeWMVideoEncoder(
             latent_dim=latent_dim,
@@ -420,7 +461,9 @@ class LeWMVideoCodec:
 
         return self.encoder.encoded_frames, stats
 
-    def decode_video(self, encoded_frames: list[EncodedFrame], target_size: tuple = None) -> list[np.ndarray]:
+    def decode_video(
+        self, encoded_frames: list[EncodedFrame], target_size: tuple = None
+    ) -> list[np.ndarray]:
         """Decode encoded frames back to RGB.
 
         Args:
@@ -444,6 +487,149 @@ class LeWMVideoCodec:
             self.encoder.encoded_frames.append(encoded)
 
         return decoded_frames
+
+
+class SVCVideoEncoder:
+    """
+    SVC-aware video encoder using dual-layer (BL + EL) architecture.
+
+    Base Layer (BL): 64ch, 4-bit quantized — streamed continuously to cloud
+    Enhancement Layer (EL): 128ch, 8-bit quantized — stored on edge NVMe
+
+    On trigger (human query / anomaly detection), the cloud fetches the corresponding
+    EL from the edge and fuses with BL for full-quality reconstruction.
+
+    Args:
+        latent_dim: Full latent dimension (default: 192)
+        base_dim: Base layer dimension (default: 64)
+        gop_size: Group of pictures size (default: 16)
+        codebook_size: Vector quantizer codebook size (default: 256)
+    """
+
+    def __init__(
+        self,
+        latent_dim: int = 192,
+        base_dim: int = 64,
+        gop_size: int = 16,
+        codebook_size: int = 256,
+    ):
+        self.latent_dim = latent_dim
+        self.base_dim = base_dim
+        self.gop_size = gop_size
+
+        self.encoder = LeWMEncoder(latent_dim=latent_dim, semantic_surprise=True)
+        self.predictor = LeWMPredictor(latent_dim=latent_dim)
+        self.splitter = LatentSplitter(latent_dim=latent_dim, base_dim=base_dim)
+        self.svc_quant = MultiRateQuantizer(num_levels_bl=16, num_levels_el=256)
+        self.svc_encoder_ctrl = SVCEncoderController(
+            splitter=self.splitter, quantizer=self.svc_quant, base_dim=base_dim
+        )
+
+        self.encoder.eval()
+        self.predictor.eval()
+
+        self.context: list[torch.Tensor] = []
+        self.encoded_frames: list[SVCEncodedFrame] = []
+
+    def encode_frame(
+        self,
+        frame: torch.Tensor,
+        frame_num: int,
+    ) -> SVCEncodedFrame:
+        """
+        Encode a single frame into SVC layers (BL + EL).
+
+        Args:
+            frame: [1, 3, H, W] frame tensor (normalized 0-1)
+            frame_num: Frame number
+
+        Returns:
+            SVCEncodedFrame with BL (cloud-bound) and EL (edge-cached)
+        """
+        start_time = time.perf_counter()
+        is_i_frame = (frame_num % self.gop_size) == 0 or len(self.context) == 0
+
+        with torch.no_grad():
+            if is_i_frame:
+                frame_type = "I"
+                surprise = 1.0
+                bl, el = self.encoder(frame, return_layers=True, svc_splitter=self.splitter)
+            else:
+                frame_type = "P"
+                latent = self.encoder(frame)
+                if len(self.context) > 0:
+                    mu, _ = self.predictor(self.context[-4:])
+                    residual = latent - mu
+                    residual_var = residual.var().item()
+                    pred_var = mu.var().item()
+                    surprise = min(1.0, residual_var / (pred_var + 1e-8))
+                else:
+                    surprise = 0.5
+                bl, el = self.splitter(latent)
+
+            bl_q, el_q = self.svc_encoder_ctrl.encode(
+                torch.cat([bl, el], dim=1) if not is_i_frame else torch.cat([bl, el], dim=1)
+            )
+            bl_bits = self.svc_encoder_ctrl.get_bl_bit_budget(bl_q.shape)
+            el_bits = self.svc_encoder_ctrl.get_el_bit_budget(el_q.shape) if el_q is not None else 0
+
+        encoding_time = (time.perf_counter() - start_time) * 1000
+
+        encoded = SVCEncodedFrame(
+            frame_num=frame_num,
+            frame_type=frame_type,
+            bl=bl,
+            el=el,
+            bl_quantized=bl_q,
+            el_quantized=el_q,
+            surprise=surprise,
+            bl_bits=bl_bits,
+            el_bits=el_bits,
+            encoding_time_ms=encoding_time,
+        )
+
+        self.encoded_frames.append(encoded)
+        if not is_i_frame:
+            latent = torch.cat([bl, el], dim=1)
+        else:
+            latent = torch.cat([bl, el], dim=1)
+        self.context.append(latent.detach())
+        if len(self.context) > self.gop_size:
+            self.context.pop(0)
+
+        return encoded
+
+    def get_stats(self) -> SVCEncodingStats:
+        """Get SVC encoding statistics."""
+        total_bl = sum(f.bl_bits for f in self.encoded_frames)
+        total_el = sum(f.el_bits for f in self.encoded_frames if f.el_bits)
+        i_frames = sum(1 for f in self.encoded_frames if f.frame_type == "I")
+        p_frames = sum(1 for f in self.encoded_frames if f.frame_type == "P")
+        total_time = sum(f.encoding_time_ms for f in self.encoded_frames) / 1000
+        avg_surprise = np.mean([f.surprise for f in self.encoded_frames])
+
+        n_pixels = 256 * 256 * 3
+        total_frames = len(self.encoded_frames)
+        avg_bl_bpp = total_bl / (total_frames * n_pixels) if total_frames else 0
+        avg_el_bpp = total_el / (total_frames * n_pixels) if total_frames else 0
+
+        return SVCEncodingStats(
+            total_frames=total_frames,
+            i_frames=i_frames,
+            p_frames=p_frames,
+            total_bl_bits=total_bl,
+            total_el_bits=total_el,
+            total_bits=total_bl + total_el,
+            encoding_time_s=total_time,
+            avg_bl_bpp=avg_bl_bpp,
+            avg_el_bpp=avg_el_bpp,
+            avg_surprise=avg_surprise,
+            el_trigger_rate=0.0,
+        )
+
+    def reset(self):
+        self.context = []
+        self.encoded_frames = []
 
 
 def compute_psnr(img1: np.ndarray, img2: np.ndarray) -> float:

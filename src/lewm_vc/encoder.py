@@ -6,7 +6,6 @@ Converts YUV420 frames into latent representations with optional
 semantic surprise detection for physics implausibility.
 """
 
-
 import torch
 import torch.nn as nn
 
@@ -47,6 +46,7 @@ class LeWMEncoder(nn.Module):
         num_heads: int = 3,
         mlp_ratio: float = 4.0,
         semantic_surprise: bool = False,
+        max_resolution: int = 512,
     ):
         super().__init__()
         self.latent_dim = latent_dim
@@ -55,22 +55,24 @@ class LeWMEncoder(nn.Module):
         self.num_layers = num_layers
         self.semantic_surprise = semantic_surprise
 
-        self.patch_embed = nn.Conv2d(
-            3, hidden_dim, kernel_size=patch_size, stride=patch_size
-        )
+        self.patch_embed = nn.Conv2d(3, hidden_dim, kernel_size=patch_size, stride=patch_size)
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, hidden_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1, hidden_dim))
+        max_grid = max_resolution // patch_size
+        self.pos_embed_grid = nn.Parameter(torch.zeros(1, hidden_dim, max_grid, max_grid))
+        self.pos_embed_cls = nn.Parameter(torch.zeros(1, 1, hidden_dim))
 
-        self.encoder_layers = nn.ModuleList([
-            TransformerEncoderLayer(
-                d_model=hidden_dim,
-                nhead=num_heads,
-                dim_feedforward=int(hidden_dim * mlp_ratio),
-                batch_first=True
-            )
-            for _ in range(num_layers)
-        ])
+        self.encoder_layers = nn.ModuleList(
+            [
+                TransformerEncoderLayer(
+                    d_model=hidden_dim,
+                    nhead=num_heads,
+                    dim_feedforward=int(hidden_dim * mlp_ratio),
+                    batch_first=True,
+                )
+                for _ in range(num_layers)
+            ]
+        )
 
         self.norm = nn.LayerNorm(hidden_dim)
 
@@ -81,35 +83,54 @@ class LeWMEncoder(nn.Module):
                 nn.Linear(hidden_dim, hidden_dim // 2),
                 nn.GELU(),
                 nn.Linear(hidden_dim // 2, 1),
-                nn.Sigmoid()
+                nn.Sigmoid(),
             )
 
     def forward(
         self,
         x: torch.Tensor,
-        return_surprise: bool = False
-    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        return_surprise: bool = False,
+        return_layers: bool = False,
+        svc_splitter=None,
+    ) -> (
+        torch.Tensor
+        | tuple[torch.Tensor, torch.Tensor]
+        | tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    ):
         """
         Forward pass of the encoder network.
 
         Args:
             x: Input YUV tensor [B, 3, H, W] normalized [0, 1]
             return_surprise: Whether to return surprise scores (requires semantic_surprise=True)
+            return_layers: Whether to return SVC BL/EL split instead of full latent
+            svc_splitter: LatentSplitter instance (required if return_layers=True)
 
         Returns:
             latent: Encoded latent [B, latent_dim, H//16, W//16]
             surprise: (optional) Physics implausibility [B, 1]
+            OR if return_layers:
+                bl: [B, base_dim, H//16, W//16] base layer
+                el: [B, enh_dim, H//16, W//16] enhancement layer
+                surprise: (optional) [B, 1]
         """
         b, c, h, w = x.shape
 
         x = self.patch_embed(x)
+
+        gh, gw = x.shape[2:]
+        pos_grid = nn.functional.interpolate(
+            self.pos_embed_grid, size=(gh, gw), mode="bilinear", align_corners=False
+        )
+        pos_grid_flat = pos_grid.flatten(2).permute(0, 2, 1)
 
         x_flat = x.flatten(2).permute(0, 2, 1)
 
         cls_tokens = self.cls_token.expand(b, -1, -1)
         x_with_cls = torch.cat([cls_tokens, x_flat], dim=1)
 
-        x_with_cls = x_with_cls + self.pos_embed
+        pos_embed = torch.cat([self.pos_embed_cls, pos_grid_flat], dim=1)
+        x_with_cls = x_with_cls + pos_embed
 
         for layer in self.encoder_layers:
             x_with_cls = layer(x_with_cls)
@@ -119,9 +140,20 @@ class LeWMEncoder(nn.Module):
         cls_output = x_with_cls[:, 0]
         patch_output = x_with_cls[:, 1:]
 
-        patch_output = patch_output.permute(0, 2, 1).reshape(b, self.hidden_dim, h // self.patch_size, w // self.patch_size)
+        patch_output = patch_output.permute(0, 2, 1).reshape(
+            b, self.hidden_dim, h // self.patch_size, w // self.patch_size
+        )
 
         latent = self.latent_proj(patch_output)
+
+        if return_layers:
+            if svc_splitter is None:
+                raise ValueError("svc_splitter required when return_layers=True")
+            bl, el = svc_splitter(latent)
+            if self.semantic_surprise and return_surprise:
+                surprise = self.surprise_head(cls_output)
+                return bl, el, surprise
+            return bl, el
 
         if self.semantic_surprise and return_surprise:
             surprise = self.surprise_head(cls_output)

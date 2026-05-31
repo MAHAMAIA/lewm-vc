@@ -13,6 +13,7 @@ import torch
 
 class NALUnitType(IntEnum):
     """NAL unit types for LeWM-VC bitstream."""
+
     SPS = 0
     PPS = 1
     APS = 2
@@ -20,6 +21,11 @@ class NALUnitType(IntEnum):
     P_RESIDUAL = 4
     SEI = 5
     EOS = 6
+    # SVC layer types
+    BL_I = 7  # Base layer I-frame
+    BL_P = 8  # Base layer P-frame
+    EL_I = 9  # Enhancement layer I-frame (stored locally)
+    EL_P = 10  # Enhancement layer P-frame (stored locally)
 
 
 class BitstreamWriter:
@@ -37,11 +43,7 @@ class BitstreamWriter:
         self.version = version
         self.byte_buffer: list[int] = []
 
-    def write_frame(
-        self,
-        frame_data: dict,
-        is_iframe: bool = False
-    ) -> bytes:
+    def write_frame(self, frame_data: dict, is_iframe: bool = False) -> bytes:
         """
         Write a single frame to bitstream.
 
@@ -66,10 +68,7 @@ class BitstreamWriter:
 
         return header + payload
 
-    def write_sequence_header(
-        self,
-        config: dict
-    ) -> bytes:
+    def write_sequence_header(self, config: dict) -> bytes:
         """
         Write sequence parameter set (SPS).
 
@@ -85,10 +84,7 @@ class BitstreamWriter:
 
         return header + config_bytes
 
-    def write_picture_header(
-        self,
-        picture_config: dict
-    ) -> bytes:
+    def write_picture_header(self, picture_config: dict) -> bytes:
         """
         Write picture parameter set (PPS).
 
@@ -104,10 +100,7 @@ class BitstreamWriter:
 
         return header + config_bytes
 
-    def write_aps(
-        self,
-        aps_data: dict
-    ) -> bytes:
+    def write_aps(self, aps_data: dict) -> bytes:
         """
         Write adaptation parameter set (APS).
 
@@ -123,10 +116,7 @@ class BitstreamWriter:
 
         return header + aps_bytes
 
-    def write_sei(
-        self,
-        sei_message: dict
-    ) -> bytes:
+    def write_sei(self, sei_message: dict) -> bytes:
         """
         Write supplemental enhancement information (SEI).
 
@@ -151,11 +141,41 @@ class BitstreamWriter:
         """
         return self._write_nal_header(NALUnitType.EOS, 0)
 
-    def _write_nal_header(
+    def write_svc_frame(
         self,
-        nal_type: NALUnitType,
-        payload_size_hint: int
-    ) -> bytes:
+        bl: torch.Tensor,
+        el: torch.Tensor | None,
+        is_iframe: bool = False,
+        el_for_local: bool = True,
+    ) -> tuple[bytes, bytes | None]:
+        """
+        Write an SVC-encoded frame: BL to cloud stream, EL to local storage.
+
+        Args:
+            bl: Base layer tensor [B, C_bl, H, W]
+            el: Enhancement layer tensor [B, C_el, H, W] or None
+            is_iframe: Whether this is an I-frame (keyframe)
+            el_for_local: If True, mark EL for local storage (not cloud)
+
+        Returns:
+            bl_nal: BL NAL unit bytes — send to cloud
+            el_nal: EL NAL unit bytes — store on edge (or None)
+        """
+        bl_type = NALUnitType.BL_I if is_iframe else NALUnitType.BL_P
+        bl_header = self._write_nal_header(bl_type, 0)
+        bl_payload = self._serialize_latent(bl)
+        bl_nal = bl_header + bl_payload
+
+        el_nal = None
+        if el is not None:
+            el_type = NALUnitType.EL_I if is_iframe else NALUnitType.EL_P
+            el_header = self._write_nal_header(el_type, 0)
+            el_payload = self._serialize_latent(el)
+            el_nal = el_header + el_payload
+
+        return bl_nal, el_nal
+
+    def _write_nal_header(self, nal_type: NALUnitType, payload_size_hint: int) -> bytes:
         """
         Write NAL unit header.
 
@@ -170,12 +190,14 @@ class BitstreamWriter:
         """
         header_byte = ((self.version & 0x0F) << 4) | (nal_type & 0x0F)
 
-        header = bytes([
-            header_byte,
-            (payload_size_hint >> 8) & 0xFF,
-            payload_size_hint & 0xFF,
-            0x00,
-        ])
+        header = bytes(
+            [
+                header_byte,
+                (payload_size_hint >> 8) & 0xFF,
+                payload_size_hint & 0xFF,
+                0x00,
+            ]
+        )
 
         return header
 
@@ -215,11 +237,7 @@ class BitstreamWriter:
 
         return self._arithmetic_encode_stub(residual_np)
 
-    def _arithmetic_encode_stub(
-        self,
-        data: np.ndarray,
-        num_bins: int = 256
-    ) -> bytes:
+    def _arithmetic_encode_stub(self, data: np.ndarray, num_bins: int = 256) -> bytes:
         """
         Arithmetic coding stub implementation.
 
@@ -306,7 +324,4 @@ class BitstreamWriter:
         Returns:
             Complete bitstream
         """
-        return b"".join(
-            bytes([b]) if isinstance(b, int) else b
-            for b in self.byte_buffer
-        )
+        return b"".join(bytes([b]) if isinstance(b, int) else b for b in self.byte_buffer)
