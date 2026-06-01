@@ -1,0 +1,67 @@
+# LeWM-VC Feature Compression Training Config
+# MPEG VCM-aligned: compress detector features, not pixels.
+# Architecture: Frame -> ResNet50(layer3) -> Compressor -> Quantize -> Entropy -> Decompressor -> Features
+# Loss: MSE(recon_features, orig_features) + lambda * NLL_rate
+
+data:
+  roots:
+    - "datasets/virat/frames"
+  image_size: 256
+  sequence_length: 1
+  augment: true
+
+model:
+  backbone: "resnet18"
+  feature_channels: 256
+  latent_dim: 8
+  compressor:
+    hidden_dim: 64
+  decompressor:
+    hidden_dim: 64
+  entropy:
+    hyper_channels: 32
+    num_components: 2
+  quantizer:
+    num_levels: 256
+
+training:
+  batch_size: 16
+  num_workers: 4
+  prefetch_factor: 2
+  pin_memory: true
+  precision: fp32
+  max_grad_norm: 1.0
+  weight_decay: 0.01
+  lr_compressor: 3.0e-4
+  lr_decompressor: 3.0e-4
+  lr_entropy: 3.0e-4
+
+phases:
+  phase0:
+    name: "feature_warmup"
+    steps: 2000
+    rate_weight: 0.0
+    freeze: ["entropy_model"]
+
+  phase1:
+    name: "rd_feature"
+    steps: 10000
+    lambda: 5.0
+    lambda_end: 0.5
+    rate_weight: 1.0
+
+  phase2:
+    name: "low_bitrate"
+    steps: 5000
+    lambda: 10.0
+    rate_weight: 1.0
+
+logging:
+  log_dir: "runs_feat_compress"
+  log_interval: 20
+  val_interval: 500
+  save_interval: 2500
+
+checkpoint:
+  dir: "checkpoints/feature_compress"
+  keep_last: 5
