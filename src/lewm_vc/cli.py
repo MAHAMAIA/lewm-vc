@@ -286,6 +286,50 @@ def main():
     info_p = feature_sub.add_parser("info", help="Show model information")
     info_p.add_argument("--model", "-m", required=True, help="Model checkpoint (.pt)")
 
+    enhance_parser = subparsers.add_parser("enhance", help="Enhancement layer operations")
+    enhance_sub = enhance_parser.add_subparsers(dest="subcommand")
+
+    record_p = enhance_sub.add_parser("record", help="Record enhancement layer (H.265)")
+    record_p.add_argument(
+        "--model", "-m", help="Model checkpoint (.pt) for base layer compression (optional)"
+    )
+    record_p.add_argument("--input", "-i", required=True, help="Input frame directory")
+    record_p.add_argument(
+        "--output",
+        "-o",
+        default="enhancement_store",
+        help="Output directory for enhancement segments",
+    )
+    record_p.add_argument("--camera-id", default="cam1", help="Camera identifier")
+    record_p.add_argument("--fps", type=int, default=30, help="Frames per second")
+    record_p.add_argument("--image-size", type=int, default=256, help="Frame resolution")
+    record_p.add_argument(
+        "--segment-duration", type=int, default=300, help="Segment duration in seconds"
+    )
+    record_p.add_argument(
+        "--encode-quality", type=int, default=70, help="H.265 encode quality (0-100, higher=better)"
+    )
+    record_p.add_argument(
+        "--max-frames", type=int, default=None, help="Limit number of frames to process"
+    )
+    record_p.add_argument(
+        "--compress", action="store_true", help="Also run base layer feature compression"
+    )
+
+    list_p = enhance_sub.add_parser("list", help="List available enhancement segments")
+    list_p.add_argument(
+        "--store", "-s", default="enhancement_store", help="Enhancement store directory"
+    )
+    list_p.add_argument("--camera-id", default="cam1", help="Camera identifier")
+
+    extract_p = enhance_sub.add_parser("extract", help="Extract a segment to a file")
+    extract_p.add_argument(
+        "--store", "-s", default="enhancement_store", help="Enhancement store directory"
+    )
+    extract_p.add_argument("--camera-id", default="cam1", help="Camera identifier")
+    extract_p.add_argument("--segment", type=int, required=True, help="Segment index to extract")
+    extract_p.add_argument("--output", "-o", default="segment.h265", help="Output file path")
+
     args = parser.parse_args()
 
     if args.command == "feature":
@@ -298,6 +342,18 @@ def main():
             cmd_decode(args)
         elif args.subcommand == "info":
             cmd_info(args)
+    elif args.command == "enhance":
+        from lewm_vc.enhance import cmd_enhance_record, cmd_enhance_list, cmd_enhance_extract
+
+        if not args.subcommand:
+            enhance_parser.print_help()
+            sys.exit(1)
+        if args.subcommand == "record":
+            cmd_enhance_record(args)
+        elif args.subcommand == "list":
+            cmd_enhance_list(args)
+        elif args.subcommand == "extract":
+            cmd_enhance_extract(args)
     else:
         parser.print_help()
 
