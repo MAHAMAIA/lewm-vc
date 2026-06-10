@@ -239,6 +239,7 @@ def cmd_enhance_record(args):
 
     n_pixels = args.image_size * args.image_size
     total_base_bytes = 0
+    base_bitstreams: dict = {}
     print(f"Recording {len(frames)} frames...")
     t0 = time.time()
 
@@ -265,12 +266,39 @@ def cmd_enhance_record(args):
                 cdf = build_gaussian_cdf(mu, sigma, step_size)
                 encoded = torchac.encode_int16_normalized_cdf(cdf, indices)
                 total_base_bytes += len(encoded)
+                if args.save_base:
+                    base_bitstreams[i] = encoded
             if (i + 1) % 50 == 0:
                 elapsed = time.time() - t0
                 avg_bpp = total_base_bytes * 8 / n_pixels / (i + 1)
                 print(
                     f"  [{i + 1}/{len(frames)}]  base_bpp={avg_bpp:.4f}  enhance_h265  [{elapsed:.0f}s]"
                 )
+
+    if args.save_base and base_bitstreams:
+        import struct, json
+
+        base_dir = Path(args.output) / args.camera_id / "base_layer"
+        base_dir.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(t0))
+        base_path = base_dir / f"{ts}_{args.camera_id}.bin"
+        header = {
+            "num_frames": len(base_bitstreams),
+            "image_size": args.image_size,
+            "step_size": models["info"]["step_size"],
+            "latent_dim": models["info"]["latent_dim"],
+        }
+        hdr_bytes = json.dumps(header).encode("utf-8")
+        with open(base_path, "wb") as f:
+            f.write(struct.pack(">I", len(hdr_bytes)))
+            f.write(hdr_bytes)
+            for idx in sorted(base_bitstreams):
+                enc = base_bitstreams[idx]
+                f.write(struct.pack(">I", len(enc)))
+                f.write(enc)
+        print(
+            f"  Base bitstream:  {base_path} ({base_path.stat().st_size} bytes, {len(base_bitstreams)} frames)"
+        )
 
     recorder.close()
     elapsed = time.time() - t0

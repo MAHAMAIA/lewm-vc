@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torchvision.models as tv_models
 
 
 CHANNELS = {
@@ -15,6 +14,8 @@ class ResNetFeatureExtractor(nn.Module):
 
     def __init__(self, backbone_name: str = "resnet18"):
         super().__init__()
+        import torchvision.models as tv_models
+
         weights_enum = {
             "resnet18": tv_models.ResNet18_Weights.DEFAULT,
             "resnet34": tv_models.ResNet34_Weights.DEFAULT,

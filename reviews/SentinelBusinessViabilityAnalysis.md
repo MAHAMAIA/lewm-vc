@@ -51,8 +51,9 @@ Third, Principal Component Analysis (PCA) and handcrafted feature compression me
 ### **The Hardware Inertia Problem**
 
 The primary physical barrier to the adoption of Sentinel is the legacy hardware footprint. Practically all active IP cameras deployed globally are closed, embedded systems equipped with hardware-accelerated Application-Specific Integrated Circuits (ASICs) designed exclusively to compress raw sensor data into H.264 or H.265 streams.1 These legacy cameras do not possess the general-purpose compute, memory, or specialized Tensor/Neural Processing Units (NPUs) required to execute deep learning models at the point of capture.18  
-Because a standard ViT-Tiny encoder contains 5.5 million to 5.7 million parameters, requires approximately 1.08 to 1.3 GFLOPs of computational power, and exhibits an active memory footprint of roughly 22 MB to 443 MB 17, it cannot run natively on a standard IP camera. Consequently, Sentinel must sit on an intermediate **Edge AI Gateway** (such as an NVIDIA Jetson or AMD Ryzen AI appliance) positioned on the local area network adjacent to the legacy cameras.21  
-Integrating this edge gateway introduces significant compute and financial friction:
+The Sentinel compressor uses a lightweight feature compression network — two convolutional layers with GELU activation, totaling 331K parameters (1.3 MB). This is approximately 17x smaller than a ViT-Tiny encoder (5.7M params) and can run on virtually any device with a GPU or NPU, including CPU inference at 25 fps. The compressor does not use attention mechanisms, making it compatible with a wider range of edge accelerators. Because the compressor operates on ResNet18 layer3 features (already computed by the detector backbone), the incremental compute cost is minimal.  
+However, Sentinel still requires an intermediate **Edge AI Gateway** (such as an NVIDIA Jetson or AMD Ryzen AI appliance) positioned on the local area network adjacent to the legacy cameras, because the compressor cannot run on the camera's H.265 ASIC.21  
+Integrating this edge gateway introduces the following compute and financial considerations:
 
 TRADITIONAL SURVEILLANCE PIPELINE  
 \+-----------------------+      H.265 (High Bandwidth / 10 Mbps)      \+------------------------+  
@@ -69,7 +70,7 @@ TRADITIONAL SURVEILLANCE PIPELINE
 SENTINEL-ENABLED DUAL-LAYER PIPELINE  
 \+-----------------------+      H.265 (Local High-Speed Network)      \+------------------------+  
 | Legacy IP Camera      |-------------------------------------------\>| Edge AI Gateway        |  
-| (On-Device H.265 ASIC)|                                            | (Sentinel ViT Encoder) |  
+| (On-Device H.265 ASIC)|                                            | (Feature Compressor)   |  
 \+-----------------------+                                            \+------------------------+  
                                                                                  |  
                                                  \+-------------------------------+-------------------------------+  
@@ -89,13 +90,14 @@ SENTINEL-ENABLED DUAL-LAYER PIPELINE
                                      \+-----------------------+
 
 To evaluate the edge compute trade-offs, MAHAMAIA must consider the hardware cost and performance metrics of edge-to-cloud scenarios:  
-An NVIDIA Jetson Orin Nano Super Developer Kit, priced at $249, delivers up to 67 INT8 TOPS of AI compute and features 8GB of LPDDR5 memory with a bandwidth of 102 GB/s, pulling between 7W and 25W of power.23 Under TensorRT optimization (leveraging structured pruning and INT8 quantization), a ViT-Tiny model executes with an inference latency of 3.6 ms to 6 ms.20 In theory, this compute profile allows a single Orin Nano gateway to process up to 10 parallel 1080p camera feeds in real-time.  
-However, a critical hardware limitation exists: *the Jetson Orin Nano completely lacks hardware video encoding blocks (NVENC)*.18 If the edge gateway must record a local fallback human-viewable H.265/H.264 stream to satisfy legal retention policies, it must rely entirely on CPU-based encoding.18  
-At 1080p, CPU-based H.265 encoding on the Orin Nano’s Arm CPU is extremely bottlenecked. Software encoding can only achieve real-time (30 or 60 fps) speeds when configured with the "ultrafast" preset, which severely compromises compression efficiency and visual quality.18 Slower, high-efficiency presets like "medium" (achieving only 19 to 42 fps) or "veryslow" (dropping to 3 to 8 fps) completely saturate the CPU, leading to massive frame drops and pipeline failures.18  
-To overcome this, operators must over-provision edge hardware to more expensive modules like the Jetson AGX Orin or Orin NX which contain dedicated NVENC silicon, driving up edge gateway hardware costs to over $500 per unit and eroding the projected cloud storage ROI.21
+The feature compressor (2 Conv2d layers, 331K params) is significantly lighter than a ViT-Tiny. On an NVIDIA Jetson Orin Nano (67 INT8 TOPS, $249), the compressor executes in under 1 ms per frame, consuming negligible GPU cycles. The dominant compute cost is the ResNet18 backbone feature extraction (the detector already runs this). A single Orin Nano can process 10+ parallel camera feeds with the compressor adding less than 10% overhead per stream.
 
-> **Note:** ViT-based encoders cannot run on Jetson DLA (Deep Learning Accelerator). DLAs only support a subset of standard CNN operations — they lack support for multi-head attention, layer normalization, and GELU activations. The encoder must run on the GPU, limiting multi-stream capacity on a single Orin NX to approximately 4-6 simultaneous streams (depending on resolution). Jetson AGX Orin ($2,000) would be required for higher density deployments (10+ streams).  
-Conversely, executing the Sentinel ViT-Tiny encoder in the cloud on an NVIDIA T4 GPU avoids edge hardware CapEx but requires first transmitting the raw, uncompressed, or high-bitrate H.265 streams over the backhaul network to the cloud. This architecture completely negates the primary value proposition of Sentinel, which is the mitigation of backhaul network transit fees and ingestion bandwidth.
+However, a critical hardware limitation exists: *the Jetson Orin Nano completely lacks hardware video encoding blocks (NVENC)*.18 If the edge gateway must record a local fallback human-viewable H.265/H.264 stream to satisfy legal retention policies, it must rely entirely on CPU-based encoding.18  
+At 1080p, CPU-based H.265 encoding on the Orin Nano's Arm CPU is extremely bottlenecked. Software encoding can only achieve real-time (30 or 60 fps) speeds when configured with the "ultrafast" preset, which severely compromises compression efficiency and visual quality.18 Slower, high-efficiency presets like "medium" (achieving only 19 to 42 fps) or "veryslow" (dropping to 3 to 8 fps) completely saturate the CPU, leading to massive frame drops and pipeline failures.18  
+To overcome this, operators must over-provision edge hardware to more expensive modules like the Jetson AGX Orin or Orin NX which contain dedicated NVENC silicon, driving up edge gateway hardware costs to over $500 per unit.21 An alternative is the C2 approach (learned pixel decoder), which uses GPU compute instead of NVENC for the enhancement layer, making it compatible with Orin Nano at the cost of additional ML parameters (~2M).
+
+> **Note:** The feature compressor uses only Conv2d and GELU operations — no attention mechanisms, layer normalization, or multi-head projections. This makes it compatible with the Jetson DLA if needed, though the GPU is preferred. The lightweight architecture (331K params) leaves ample GPU headroom for other edge workloads (detector models, additional cameras).  
+Conversely, executing the compressor in the cloud on an NVIDIA T4 GPU avoids edge hardware CapEx but requires first transmitting the raw, uncompressed, or high-bitrate H.265 streams over the backhaul network to the cloud. This architecture completely negates the primary value proposition of Sentinel, which is the mitigation of backhaul network transit fees and ingestion bandwidth.
 
 ### **The "Human-in-the-Loop" Paradox**
 

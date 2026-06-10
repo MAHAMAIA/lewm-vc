@@ -226,8 +226,11 @@ class SVCTrainer:
         self.fuser.load_state_dict(ckpt["fuser"])
         self.multi_quant.load_state_dict(ckpt["multi_quant"])
         self.global_step = ckpt.get("global_step", 0)
-        self.lambda_val = ckpt.get("lambda_val", self.lambda_val)
-        print(f"  Resumed SVC from {checkpoint_path} (step {self.global_step})")
+        # Keep the CLI-provided lambda_val — don't overwrite with checkpoint value
+        # because the old checkpoint may have had a different (wrong) λ
+        print(
+            f"  Resumed SVC from {checkpoint_path} (step {self.global_step}, λ={self.lambda_val})"
+        )
 
     def log_metrics(self, metrics: dict[str, float], step: int):
         if self.writer is not None:

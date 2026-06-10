@@ -315,6 +315,9 @@ def main():
     record_p.add_argument(
         "--compress", action="store_true", help="Also run base layer feature compression"
     )
+    record_p.add_argument(
+        "--save-base", action="store_true", help="Save base layer bitstream alongside enhancement"
+    )
 
     list_p = enhance_sub.add_parser("list", help="List available enhancement segments")
     list_p.add_argument(
