@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F  # noqa: N812
 
 
 CHANNELS = {
@@ -85,3 +86,69 @@ class FeatureDecompressor(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
+
+
+class ResBlock(nn.Module):
+    """Residual block with two conv layers and GELU activation."""
+
+    def __init__(self, ch: int):
+        super().__init__()
+        self.conv1 = nn.Conv2d(ch, ch, 3, 1, 1)
+        self.conv2 = nn.Conv2d(ch, ch, 3, 1, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return F.gelu(x + self.conv2(F.gelu(self.conv1(x))))
+
+
+class DeepCompressor(nn.Module):
+    """Deeper compressor with residual blocks and tanh output.
+
+    Architecture: stem → ResBlock × 2 → head → tanh
+
+    Input:  [B, in_channels, H, W] features from detector backbone
+    Output: [B, latent_dim, H, W] compressed features in [-1, 1]
+    """
+
+    def __init__(self, in_channels: int = 256, latent_dim: int = 16, mid_channels: int = 128):
+        super().__init__()
+        self.stem = nn.Conv2d(in_channels, mid_channels, 3, 1, 1)
+        self.res1 = ResBlock(mid_channels)
+        self.res2 = ResBlock(mid_channels)
+        self.head = nn.Conv2d(mid_channels, latent_dim, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = F.gelu(self.stem(x))
+        x = self.res1(x)
+        x = self.res2(x)
+        return torch.tanh(self.head(x))
+
+    @property
+    def num_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+
+class DeepDecompressor(nn.Module):
+    """Deeper decompressor with residual blocks.
+
+    Architecture: stem → ResBlock × 2 → head
+
+    Input:  [B, latent_dim, H, W] quantized latent
+    Output: [B, out_channels, H, W] reconstructed features
+    """
+
+    def __init__(self, latent_dim: int = 16, out_channels: int = 256, mid_channels: int = 128):
+        super().__init__()
+        self.stem = nn.Conv2d(latent_dim, mid_channels, 1)
+        self.res1 = ResBlock(mid_channels)
+        self.res2 = ResBlock(mid_channels)
+        self.head = nn.Conv2d(mid_channels, out_channels, 3, 1, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = F.gelu(self.stem(x))
+        x = self.res1(x)
+        x = self.res2(x)
+        return self.head(x)
+
+    @property
+    def num_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
